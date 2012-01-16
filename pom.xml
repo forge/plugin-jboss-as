@@ -25,6 +25,12 @@
       </dependency>
       <dependency>
         <groupId>org.jboss.forge</groupId>
+        <artifactId>forge-maven-api</artifactId>
+        <version>${forge.api.version}</version>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.forge</groupId>
         <artifactId>forge-test-harness</artifactId>
         <version>${forge.api.version}</version>
         <scope>test</scope>
