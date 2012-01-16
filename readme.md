@@ -8,20 +8,20 @@ After installation, the server must be running in order to use any management co
 
 1. Installation (requires an active project)
 
-    $ forge install-plugin jboss-as-7
-	 $ as7 setup
+    `$ forge install-plugin jboss-as-7`
+	 `$ as7 setup`
 
 2. Deployment 
 
-    $ as7 deploy
+    `$ as7 deploy`
 
 3. Redeployment
 
-    $ as7 redeploy
+    `$ as7 redeploy`
 
 3. Undeployment
 
-    $ as7 undeploy
+    `$ as7 undeploy`
 
 Contribute
 ==========
