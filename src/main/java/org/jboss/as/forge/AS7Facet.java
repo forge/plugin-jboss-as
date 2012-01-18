@@ -37,7 +37,7 @@ public class AS7Facet extends BaseFacet
    {
       MavenPluginFacet pluginFacet = project.getFacet(MavenPluginFacet.class);
       pluginFacet.addPlugin(MavenPluginBuilder.create()
-               .setDependency(DependencyBuilder.create("org.jboss.as.plugins:jboss-as-maven-plugin:7.1.0.Beta1b")));
+               .setDependency(DependencyBuilder.create("org.jboss.as.plugins:jboss-as-maven-plugin:7.1.0.CR1")));
       return true;
    }
 
