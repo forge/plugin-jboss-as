@@ -29,6 +29,8 @@ final class PropertyKey {
 
     public static final String AS7 = "as7";
 
+    public static final String BUNDLES_DIR = generateKey(AS7, "bundles-dir");
+
     public static final String CONFIGURED = generateKey(AS7, "configured");
 
     public static final String HOSTNAME = generateKey(AS7, "hostname");
@@ -38,6 +40,10 @@ final class PropertyKey {
     public static final String JBOSS_HOME = generateKey(AS7, "jboss-home");
 
     public static final String JBOSS_AS_VERSION = generateKey(AS7, "version");
+
+    public static final String JVM_ARGS = generateKey(AS7, "jvm-args");
+
+    public static final String MODULES_DIR = generateKey(AS7, "modules-dir");
 
     public static final String PORT = generateKey(AS7, "port");
 

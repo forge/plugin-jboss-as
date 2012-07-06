@@ -165,9 +165,9 @@ public final class StandaloneServer extends Server {
         cmd.add("-jaxpmodule");
         cmd.add("javax.xml.jaxp-provider");
         cmd.add("org.jboss.as.standalone");
-        if (serverConfiguration.getServerConfig() != null) {
+        if (serverConfiguration.getServerConfigFile() != null) {
             cmd.add("-server-config");
-            cmd.add(serverConfiguration.getServerConfig());
+            cmd.add(serverConfiguration.getServerConfigFile());
         }
         return cmd;
     }

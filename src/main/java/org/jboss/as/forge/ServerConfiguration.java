@@ -22,344 +22,118 @@
 
 package org.jboss.as.forge;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileFilter;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
 import javax.security.auth.callback.CallbackHandler;
 
-import org.jboss.as.forge.server.ClientCallbackHandler;
-import org.jboss.as.forge.util.Files;
-import org.jboss.as.forge.util.Streams;
-import org.jboss.forge.env.Configuration;
-import org.jboss.forge.env.ConfigurationScope;
-import org.jboss.forge.project.dependencies.DependencyResolver;
-import org.jboss.forge.resources.DependencyResource;
-import org.jboss.forge.resources.Resource;
-import org.jboss.forge.shell.Shell;
-import org.jboss.forge.shell.ShellMessages;
-
 /**
+ * The configuration used to launch JBoss Application Server.
+ *
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
  */
-public class ServerConfiguration {
-
-    private static final FileFilter FILTER = new FileFilter() {
-        @Override
-        public boolean accept(final File file) {
-            return file.isFile() && JBOSS_MODULES_JAR.equals(file.getName());
-        }
-    };
-
-    public static final String JBOSS_MODULES_JAR = "jboss-modules.jar";
-
-    public static final String DEFAULT_HOSTNAME = "localhost";
-
-    public static final int DEFAULT_PORT = 9999;
-
-    @Inject
-    private DependencyResolver dependencyResolver;
-
-    @Inject
-    private Versions versions;
-
-    @Inject
-    private ClientCallbackHandler callbackHandler;
-
-    @Inject
-    private Configuration configuration;
-
-    @Inject
-    private Shell shell;
-
-    private String hostname;
-    private int port;
-    private File jbossHome;
-    private File modulesDir;
-    private File bundlesDir;
-    private String[] jvmArgs;
-    private String javaHome;
-    private String serverConfig;
-    private long startupTimeout;
-    private Version version;
-
-    public ServerConfiguration() {
-        hostname = DEFAULT_HOSTNAME;
-        port = DEFAULT_PORT;
-        // version = versions.defaultVersion();
-    }
-
-    @PostConstruct
-    protected void init() {
-        if (isConfigured()) {
-            final Configuration configuration = getConfiguration();
-            hostname = configuration.getString(PropertyKey.HOSTNAME, DEFAULT_HOSTNAME);
-            port = configuration.getInt(PropertyKey.PORT, DEFAULT_PORT);
-            jbossHome = getFile(configuration, PropertyKey.JBOSS_HOME);
-            javaHome = configuration.getString(PropertyKey.JAVA_HOME, SecurityActions.getEnvironmentVariable("JAVA_HOME"));
-            // modulesDir = getFile();
-            modulesDir = Files.createFile(jbossHome, "modules");
-            // bundlesDir = getFile();
-            bundlesDir = Files.createFile(jbossHome, "bundles");
-            // jvmArgs =
-            serverConfig = configuration.getString(PropertyKey.SERVER_CONFIG_FILE, null);
-            startupTimeout = configuration.getLong(PropertyKey.SERVER_STARTUP_TIMEOUT, 60L);
-            version = (configuration.containsKey(PropertyKey.JBOSS_AS_VERSION) ?
-                    versions.fromString(configuration.getString(PropertyKey.JBOSS_AS_VERSION)) :
-                    versions.defaultVersion());
-        }
-    }
-
-    public boolean isConfigured() {
-        return configuration.getScopedConfiguration(ConfigurationScope.PROJECT).containsKey(PropertyKey.CONFIGURED);
-    }
-
-    private void setConfiguration(final ConfigurationScope scope) {
-        configuration.getScopedConfiguration(ConfigurationScope.PROJECT).setProperty(PropertyKey.CONFIGURED, scope.toString());
-    }
-
-    private Configuration getConfiguration() {
-        if (!isConfigured()) {
-            throw new IllegalStateException("No configuration found, please set the configuration target.");
-        }
-        final ConfigurationScope scope = ConfigurationScope.valueOf(configuration.getScopedConfiguration(ConfigurationScope.PROJECT).getString(PropertyKey.CONFIGURED));
-        return configuration.getScopedConfiguration(scope);
-    }
-
-    public String getHostname() {
-        return hostname;
-    }
-
-    public void setHostname(final String hostname) {
-        this.hostname = hostname;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(final int port) {
-        this.port = port;
-    }
-
-    public CallbackHandler getCallbackHandler() {
-        return callbackHandler;
-    }
-
-    public File getJbossHome() {
-        return jbossHome;
-    }
-
-    public void setJbossHome(final File jbossHome) {
-        this.jbossHome = jbossHome;
-        // TODO clean this bit up
-        modulesDir = Files.createFile(jbossHome, "modules");
-        bundlesDir = Files.createFile(jbossHome, "bundles");
-    }
-
-    public File getModulesDir() {
-        return modulesDir;
-    }
-
-    public void setModulesDir(final File modulesDir) {
-        this.modulesDir = modulesDir;
-    }
-
-    public File getBundlesDir() {
-        return bundlesDir;
-    }
-
-    public void setBundlesDir(final File bundlesDir) {
-        this.bundlesDir = bundlesDir;
-    }
-
-    public String[] getJvmArgs() {
-        return jvmArgs;
-    }
-
-    public void setJvmArgs(final String[] jvmArgs) {
-        this.jvmArgs = jvmArgs;
-    }
-
-    public String getJavaHome() {
-        return javaHome;
-    }
-
-    public void setJavaHome(final String javaHome) {
-        this.javaHome = javaHome;
-    }
-
-    public String getServerConfig() {
-        return serverConfig;
-    }
-
-    public void setServerConfig(final String serverConfig) {
-        this.serverConfig = serverConfig;
-    }
-
-    public long getStartupTimeout() {
-        return startupTimeout;
-    }
-
-    public void setStartupTimeout(final long startupTimeout) {
-        this.startupTimeout = startupTimeout;
-    }
-
-    public Version getVersion() {
-        return version;
-    }
-
-    public void setVersion(final Version version) {
-        this.version = version;
-    }
-
-    private static File getFile(final Configuration configuration, final String key) {
-        return (configuration.containsKey(key) ? new File(configuration.getString(key)) : null);
-    }
-
-    // TODO The entire prompting needs to be cleaned up
+public interface ServerConfiguration {
 
     /**
-     * Configure the settings
-     *
-     * @return {@code true} if configured correct, otherwise {@code false}
+     * The default host name
      */
-    protected boolean configure(final File targetDir) {
-        setConfiguration(ConfigurationScope.PROJECT);
-        final Configuration configuration = getConfiguration();
-
-        // Prompt for Java Home
-        boolean doPrompt = true;
-        if (configuration.containsKey(PropertyKey.JAVA_HOME)) {
-            doPrompt = shell.promptBoolean(String.format("The Java Home '%s' is already set, would you like to override it?", configuration.getString(PropertyKey.JAVA_HOME)), false);
-        }
-        if (doPrompt) {
-            final String javaHome = shell.prompt("Enter the Java home directory or leave blank to use the JAVA_HOME environment variable:");
-            if (!javaHome.isEmpty()) {
-                configuration.setProperty(PropertyKey.JAVA_HOME, javaHome);
-                this.javaHome = javaHome;
-            }
-        }
-
-        // Prompt the user for the version
-        doPrompt = true;
-        if (configuration.containsKey(PropertyKey.JBOSS_AS_VERSION)) {
-            doPrompt = shell.promptBoolean(String.format("A default version of %s is already set, would you like to override it?",
-                    configuration.getString(PropertyKey.JBOSS_AS_VERSION)), false);
-        }
-        if (doPrompt) {
-            version = shell.promptChoiceTyped("Choose default JBoss AS version:", versions.getVersions());
-            configuration.setProperty(PropertyKey.JBOSS_AS_VERSION, version.toString());
-        }
-
-        // Prompt for a path or download
-        final String result = shell.prompt("Enter path for JBoss AS or leave blank to download:");
-        final File jbossHome;
-        if (result.isEmpty()) {
-            jbossHome = downloadAndInstall(targetDir);
-        } else {
-            jbossHome = new File(result);
-        }
-
-        // Should never be null, but let's be careful
-        if (jbossHome == null) {
-            ShellMessages.error(shell, "The JBoss Home was found to be null, something is broken.");
-            return false;
-        }
-        configuration.setProperty(PropertyKey.JBOSS_HOME, jbossHome.getAbsolutePath());
-        this.jbossHome = jbossHome;
-        return true;
-    }
-
-    protected boolean isServerInstalled() {
-        final File jbossHome = this.jbossHome;
-        final File[] files = jbossHome.listFiles(FILTER);
-        return jbossHome.exists() && files != null && files.length > 0;
-    }
-
-    protected void downloadAndInstall() {
-        downloadAndInstall(jbossHome);
-    }
-
-    protected File downloadAndInstall(final File baseDir) {
-        if (shell.promptBoolean(String.format("You are about to download JBoss AS %s to '%s' which could take a while. Would you like to continue?", version, baseDir))) {
-            final List<DependencyResource> asArchive = dependencyResolver.resolveArtifacts(version.getDependency());
-            if (asArchive.isEmpty()) {
-                throw new IllegalStateException(String.format("Could not find artifact: %s", version.getDependency()));
-            }
-            final DependencyResource zipFile = asArchive.get(0);
-            // For now just delete the target
-            return extract(zipFile, baseDir.getParentFile());
-        }
-        return null;
-    }
+    final String DEFAULT_HOSTNAME = "localhost";
 
     /**
-     * Extracts the data from the downloaded zip file.
-     *
-     * @param zipFile the zip file to extract
-     * @param target  the directory the data should be extracted to
+     * The default management port
      */
-    private File extract(final DependencyResource zipFile, final File target) {
-        File result = target;
-        final byte buff[] = new byte[1024];
-        ZipFile file = null;
-        try {
-            file = new ZipFile(zipFile.getFullyQualifiedName());
-            final Enumeration<? extends ZipEntry> entries = file.entries();
-            boolean firstEntry = true;
-            while (entries.hasMoreElements()) {
-                final ZipEntry entry = entries.nextElement();
-                // Create the extraction target
-                final File extractTarget = new File(target, entry.getName());
-                // First entry should be a the base directory
-                if (firstEntry) {
-                    firstEntry = false;
-                    // Confirm override on the extraction target only once
-                    if (extractTarget.exists()) {
-                        if (shell.promptBoolean(String.format("The target (%s) already exists, would you like to replace the directory?", extractTarget), true)) {
-                            Files.deleteRecursively(extractTarget);
-                        } else {
-                            result = null;
-                            break;
-                        }
-                    }
-                    result = extractTarget;
-                }
-                if (entry.isDirectory()) {
-                    extractTarget.mkdirs();
-                } else {
-                    final File parent = new File(extractTarget.getParent());
-                    parent.mkdirs();
-                    final BufferedInputStream in = new BufferedInputStream(file.getInputStream(entry));
-                    try {
-                        final BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(extractTarget));
-                        try {
-                            int read;
-                            while ((read = in.read(buff)) != -1) {
-                                out.write(buff, 0, read);
-                            }
-                        } finally {
-                            Streams.safeClose(out);
-                        }
-                    } finally {
-                        Streams.safeClose(in);
-                    }
-                }
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException(String.format("Error extracting '%s'", (file == null ? "null file" : file.getName())), e);
-        } finally {
-            Streams.safeClose(file);
-        }
-        return result;
-    }
+    final int DEFAULT_PORT = 9999;
+
+    /**
+     * Returns the hostname of the management console to attach to.
+     * <p/>
+     * By default {@link #DEFAULT_HOSTNAME} is returned.
+     *
+     * @return the hostname
+     */
+    String getHostname();
+
+    /**
+     * Returns the management port to attach to.
+     * <p/>
+     * By default {@link #DEFAULT_PORT} is returned.
+     *
+     * @return the management port
+     */
+    int getPort();
+
+    /**
+     * Returns the security callback handler used if a username and password are required when attaching to the
+     * management console.
+     *
+     * @return the callback handler
+     */
+    CallbackHandler getCallbackHandler();
+
+    /**
+     * Returns the JBoss home directory.
+     * <p/>
+     * This is the directory where JBoss application server is installed and cannot be {@code null}.
+     *
+     * @return the JBoss home directory.
+     */
+    File getJbossHome();
+
+    /**
+     * Returns the directory to the modules for JBoss Application Server.
+     * <p/>
+     * By default {@link #getJbossHome() JBOSS_HOME/modules} is returned,
+     *
+     * @return the modules directory
+     */
+    File getModulesDir();
+
+    /**
+     * Returns the directory to the bundles for JBoss Application Server.
+     * <p/>
+     * By default {@link #getJbossHome() JBOSS_HOME/bundles} is returned,
+     *
+     * @return the bundles directory
+     */
+    File getBundlesDir();
+
+    /**
+     * Returns an array of the JVM arguments to pass to the Java command when launching the server.
+     *
+     * @return the JVM arguments or {@code null} if there are none set
+     */
+    String[] getJvmArgs();
+
+    /**
+     * Returns the Java home directory.
+     * <p/>
+     * By default the {@literal JAVA_HOME} environment variable is used. If {@code null} is returned the server may not
+     * properly work.
+     *
+     * @return the Java home directory
+     */
+    String getJavaHome();
+
+    /**
+     * Returns the server configuration file or {@code null} if using the default configuration file.
+     *
+     * @return the server configuration file or {@code null}
+     */
+    String getServerConfigFile();
+
+    /**
+     * Returns the timeout to wait for the server to successfully start.
+     * <p/>
+     * A number greater than 0 should be returned. Any default value greater than 0 is acceptable.
+     *
+     * @return the timeout
+     */
+    long getStartupTimeout();
+
+    /**
+     * The version of the JBoss Application Server to use.
+     * <p/>
+     * By default the {@link org.jboss.as.forge.Versions#defaultVersion()} will be returned.
+     *
+     * @return the version of the JBoss Application Server to use
+     */
+    Version getVersion();
 }

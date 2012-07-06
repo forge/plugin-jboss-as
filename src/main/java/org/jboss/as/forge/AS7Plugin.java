@@ -61,7 +61,7 @@ public class AS7Plugin implements Plugin {
     private Versions versions;
 
     @Inject
-    private ServerConfiguration serverConfiguration;
+    private ServerConfigurator serverConfigurator;
 
 
     @SetupCommand
@@ -104,12 +104,12 @@ public class AS7Plugin implements Plugin {
     public void start(final PipeOut out, @Option(name = "jboss-home", type = PromptType.FILE_PATH) final String jbossHome,
                       @Option(name = "java-home") final String javaHome,
                       @Option(name = "version", completer = VersionCompleter.class) final String version) throws Exception {
-        if (!isSetUp()) return;
+        if (needsSetUp()) return;
 
         // Version always needs to be set first
         if (version != null) {
             if (versions.isValidVersion(version)) {
-                serverConfiguration.setVersion(versions.fromString(version));
+                serverConfigurator.setVersion(versions.fromString(version));
             } else {
                 ShellMessages.error(shell, String.format("Invalid version '%s'. Valid versions: %s", version, versions.getAllVersions()));
             }
@@ -117,40 +117,40 @@ public class AS7Plugin implements Plugin {
 
         // Set-up the startup configuration
         if (javaHome != null) {
-            serverConfiguration.setJavaHome(javaHome);
+            serverConfigurator.setJavaHome(javaHome);
         }
         if (jbossHome != null) {
-            serverConfiguration.setJbossHome(new File(jbossHome));
+            serverConfigurator.setJbossHome(new File(jbossHome));
         }
         // Get the server facet
-        project.getFacet(AS7ServerFacet.class).start(serverConfiguration);
+        project.getFacet(AS7ServerFacet.class).start(serverConfigurator.configure());
     }
 
     @Command(help = "Checks the status of the server.")
     public void status(final PipeOut out) throws Exception {
-        if (!isSetUp()) return;
+        if (needsSetUp()) return;
         project.getFacet(AS7ServerFacet.class).status();
     }
 
     @Command
     public void shutdown(final PipeOut out) throws Exception {
-        if (!isSetUp()) return;
+        if (needsSetUp()) return;
         project.getFacet(AS7ServerFacet.class).shutdown();
     }
 
     @Command("execute-command")
     public void executeCliCommand(final PipeOut out,
                                   @Option(description = "The CLI command to execute.", required = true) final String cmd) throws IOException {
-        if (!isSetUp()) return;
+        if (needsSetUp()) return;
         project.getFacet(AS7ServerFacet.class).executeCommand(cmd);
 
     }
 
-    private boolean isSetUp() {
-        if (serverConfiguration.isConfigured()) {
-            return true;
+    private boolean needsSetUp() {
+        if (serverConfigurator.hasConfiguration()) {
+            return false;
         }
         ShellMessages.error(shell, "The server is not configured. Please run the setup command.");
-        return false;
+        return true;
     }
 }

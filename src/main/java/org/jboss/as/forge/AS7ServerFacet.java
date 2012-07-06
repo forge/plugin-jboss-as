@@ -22,19 +22,28 @@
 
 package org.jboss.as.forge;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.jboss.as.forge.server.Server;
 import org.jboss.as.forge.server.Server.State;
 import org.jboss.as.forge.server.StandaloneServer;
-import org.jboss.forge.env.Configuration;
+import org.jboss.as.forge.util.Files;
+import org.jboss.as.forge.util.Streams;
 import org.jboss.forge.project.Project;
+import org.jboss.forge.project.dependencies.DependencyResolver;
 import org.jboss.forge.project.facets.BaseFacet;
 import org.jboss.forge.project.facets.PackagingFacet;
-import org.jboss.forge.resources.Resource;
+import org.jboss.forge.resources.DependencyResource;
 import org.jboss.forge.shell.Shell;
 import org.jboss.forge.shell.ShellMessages;
 import org.jboss.forge.shell.events.PreShutdown;
@@ -50,10 +59,13 @@ class AS7ServerFacet extends BaseFacet {
     private Shell shell;
 
     @Inject
-    private Configuration configuration;
+    private DependencyResolver dependencyResolver;
 
     @Inject
-    private ServerConfiguration serverConfiguration;
+    private Versions versions;
+
+    @Inject
+    private ProjectServerConfigurator serverConfigurator;
 
     @Override
     public boolean install() {
@@ -62,7 +74,7 @@ class AS7ServerFacet extends BaseFacet {
 
     @Override
     public boolean isInstalled() {
-        return serverConfiguration.isConfigured();
+        return serverConfigurator.hasConfiguration();
     }
 
     protected boolean configure() {
@@ -70,7 +82,7 @@ class AS7ServerFacet extends BaseFacet {
         if (server != null && server.isStarted()) {
             return false;
         }
-        return serverConfiguration.configure(getProjectTarget());
+        return promptConfiguration();
     }
 
     public boolean isStarted() {
@@ -89,10 +101,10 @@ class AS7ServerFacet extends BaseFacet {
 
     public void start(final ServerConfiguration serverConfiguration) throws IOException {
         // Make sure the server is installed
-        if (!serverConfiguration.isServerInstalled()) {
+        if (!serverConfiguration.getJbossHome().exists()) {
             // If the JBoss Home is the projects target directory, just download and install
             if (serverConfiguration.getJbossHome().getParentFile().equals(getProjectTarget())) {
-                serverConfiguration.downloadAndInstall();
+                downloadAndInstall(serverConfiguration.getJbossHome(), serverConfiguration.getVersion());
             } else {
                 ShellMessages.error(shell, String.format("JBoss AS %s could not be started due to an invalid or missing install at '%s'.",
                         serverConfiguration.getVersion(), serverConfiguration.getJbossHome()));
@@ -131,7 +143,7 @@ class AS7ServerFacet extends BaseFacet {
         final Server server = getServer(project);
         if (server != null) {
             server.shutdown();
-            ShellMessages.info(shell, String.format("JBoss AS %s has successfully shutdown.", serverConfiguration.getVersion()));
+            ShellMessages.info(shell, "JBoss AS has successfully shutdown.");
         } else {
             ShellMessages.error(shell, "The server is has not been created.");
         }
@@ -168,5 +180,137 @@ class AS7ServerFacet extends BaseFacet {
 
     private static void setServer(final Project project, final Server server) {
         project.setAttribute("server", server);
+    }
+
+    /**
+     * Configure the settings
+     *
+     * @return {@code true} if configured correct, otherwise {@code false}
+     */
+    private boolean promptConfiguration() {
+        final ServerConfiguration defaultConfig = serverConfigurator.defaultConfiguration();
+
+        // Prompt for Java Home
+        boolean doPrompt = true;
+        if (defaultConfig.getJavaHome() != null) {
+            doPrompt = shell.promptBoolean(String.format("The Java Home '%s' is already set, would you like to override it?", defaultConfig.getJavaHome()), false);
+        }
+        if (doPrompt) {
+            final String javaHome = shell.prompt("Enter the Java home directory or leave blank to use the JAVA_HOME environment variable:");
+            if (javaHome.isEmpty()) {
+                serverConfigurator.setJavaHome(null);
+            } else {
+                serverConfigurator.setJavaHome(javaHome);
+            }
+        }
+
+        // Prompt the user for the version
+        doPrompt = true;
+        if (defaultConfig.getVersion() != null) {
+            doPrompt = shell.promptBoolean(String.format("A default version of %s is already set, would you like to override it?",
+                    defaultConfig.getVersion()), false);
+        }
+        // TODO fix the version and download
+        final Version version;
+        if (doPrompt) {
+            version = shell.promptChoiceTyped("Choose default JBoss AS version:", versions.getVersions());
+        } else {
+            version = versions.defaultVersion();
+        }
+        serverConfigurator.setVersion(version);
+
+        // Prompt for a path or download
+        final String result = shell.prompt("Enter path for JBoss AS or leave blank to download:");
+        final File jbossHome;
+        if (result.isEmpty()) {
+            jbossHome = downloadAndInstall(serverConfigurator.formatDefaultJbossHome(version), version);
+            serverConfigurator.setJbossHome(null);
+        } else {
+            jbossHome = new File(result);
+            serverConfigurator.setJbossHome(jbossHome);
+        }
+
+        // Should never be null, but let's be careful
+        if (jbossHome == null) {
+            ShellMessages.error(shell, "The JBoss Home was found to be null, something is broken.");
+            return false;
+        }
+        serverConfigurator.writeConfiguration();
+        return true;
+    }
+
+    // TODO version *may* not be necessary
+    private File downloadAndInstall(final File baseDir, final Version version) {
+        if (shell.promptBoolean(String.format("You are about to download JBoss AS %s to '%s' which could take a while. Would you like to continue?", version, baseDir))) {
+            final List<DependencyResource> asArchive = dependencyResolver.resolveArtifacts(version.getDependency());
+            if (asArchive.isEmpty()) {
+                throw new IllegalStateException(String.format("Could not find artifact: %s", version.getDependency()));
+            }
+            final DependencyResource zipFile = asArchive.get(0);
+            // For now just delete the target
+            return extract(zipFile, baseDir.getParentFile());
+        }
+        return null;
+    }
+
+    /**
+     * Extracts the data from the downloaded zip file.
+     *
+     * @param zipFile the zip file to extract
+     * @param target  the directory the data should be extracted to
+     */
+    private File extract(final DependencyResource zipFile, final File target) {
+        File result = target;
+        final byte buff[] = new byte[1024];
+        ZipFile file = null;
+        try {
+            file = new ZipFile(zipFile.getFullyQualifiedName());
+            final Enumeration<? extends ZipEntry> entries = file.entries();
+            boolean firstEntry = true;
+            while (entries.hasMoreElements()) {
+                final ZipEntry entry = entries.nextElement();
+                // Create the extraction target
+                final File extractTarget = new File(target, entry.getName());
+                // First entry should be a the base directory
+                if (firstEntry) {
+                    firstEntry = false;
+                    // Confirm override on the extraction target only once
+                    if (extractTarget.exists()) {
+                        if (shell.promptBoolean(String.format("The target (%s) already exists, would you like to replace the directory?", extractTarget), true)) {
+                            Files.deleteRecursively(extractTarget);
+                        } else {
+                            result = null;
+                            break;
+                        }
+                    }
+                    result = extractTarget;
+                }
+                if (entry.isDirectory()) {
+                    extractTarget.mkdirs();
+                } else {
+                    final File parent = new File(extractTarget.getParent());
+                    parent.mkdirs();
+                    final BufferedInputStream in = new BufferedInputStream(file.getInputStream(entry));
+                    try {
+                        final BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(extractTarget));
+                        try {
+                            int read;
+                            while ((read = in.read(buff)) != -1) {
+                                out.write(buff, 0, read);
+                            }
+                        } finally {
+                            Streams.safeClose(out);
+                        }
+                    } finally {
+                        Streams.safeClose(in);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException(String.format("Error extracting '%s'", (file == null ? "null file" : file.getName())), e);
+        } finally {
+            Streams.safeClose(file);
+        }
+        return result;
     }
 }
