@@ -226,16 +226,6 @@ public abstract class Server {
     protected abstract List<String> createLaunchCommand(final ServerConfiguration serverConfiguration);
 
     /**
-     * Deploys the application to the server.
-     *
-     * @param file           the file to deploy
-     * @param deploymentName the name of the deployment
-     *
-     * @throws java.io.IOException
-     */
-    public abstract void deploy(final File file, final String deploymentName) throws IOException;
-
-    /**
      * Execute a CLI command.
      *
      * @param cmd the command to execute

@@ -30,6 +30,8 @@ import java.util.List;
 
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.forge.ServerConfiguration;
+import org.jboss.as.forge.server.deployment.Deployment;
+import org.jboss.as.forge.server.deployment.standalone.StandaloneDeployment;
 import org.jboss.as.forge.util.Files;
 import org.jboss.as.forge.util.Streams;
 import org.jboss.dmr.ModelNode;
@@ -170,24 +172,6 @@ public final class StandaloneServer extends Server {
             cmd.add(serverConfiguration.getServerConfigFile());
         }
         return cmd;
-    }
-
-    @Override
-    public synchronized void deploy(final File file, final String deploymentName) throws IOException {
-        if (isStarted) {
-            /**
-             switch (StandaloneDeployment.create(client, file, deploymentName, Deployment.Type.DEPLOY).execute()) {
-             case REQUIRES_RESTART: {
-             client.execute(Operations.createOperation(Operations.RELOAD));
-             break;
-             }
-             case SUCCESS:
-             break;
-             }
-             **/
-        } else {
-            throw new IllegalStateException("Cannot deploy to a server that is not running.");
-        }
     }
 
 }

@@ -34,9 +34,15 @@ import java.util.zip.ZipFile;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
+import org.jboss.as.controller.client.ModelControllerClient;
+import org.jboss.as.forge.server.Operations;
 import org.jboss.as.forge.server.Server;
 import org.jboss.as.forge.server.Server.State;
 import org.jboss.as.forge.server.StandaloneServer;
+import org.jboss.as.forge.server.deployment.Deployment;
+import org.jboss.as.forge.server.deployment.Deployment.Type;
+import org.jboss.as.forge.server.deployment.DeploymentFailedException;
+import org.jboss.as.forge.server.deployment.standalone.StandaloneDeployment;
 import org.jboss.as.forge.util.Files;
 import org.jboss.as.forge.util.Streams;
 import org.jboss.forge.project.Project;
@@ -77,6 +83,18 @@ class AS7ServerFacet extends BaseFacet {
         return serverConfigurator.hasConfiguration();
     }
 
+    public void deploy(final String path, final ServerConfiguration serverConfiguration, final boolean force) throws IOException, DeploymentFailedException {
+        processDeployment(path, serverConfiguration, (force ? Type.FORCE_DEPLOY : Type.DEPLOY));
+    }
+
+    public void redeploy(final String path, final ServerConfiguration serverConfiguration) throws IOException, DeploymentFailedException {
+        processDeployment(path, serverConfiguration, Type.REDEPLOY);
+    }
+
+    public void undeploy(final String path, final ServerConfiguration serverConfiguration, final boolean ignoreMissing) throws IOException, DeploymentFailedException {
+        processDeployment(path, serverConfiguration, (ignoreMissing ? Type.UNDEPLOY_IGNORE_MISSING : Type.UNDEPLOY));
+    }
+
     protected boolean configure() {
         final Server server = getServer(project);
         if (server != null && server.isStarted()) {
@@ -91,6 +109,7 @@ class AS7ServerFacet extends BaseFacet {
     }
 
     public void executeCommand(final String cmd) throws IOException {
+        // TODO this should also work for remote servers not just locally started servers
         final Server server = getServer(project);
         if (server == null) {
             ShellMessages.error(shell, "The server is not running.");
@@ -129,6 +148,7 @@ class AS7ServerFacet extends BaseFacet {
     }
 
     public void status() {
+        // TODO this should also work for remote servers not just locally started servers
         final Server server = getServer(project);
         final State state;
         if (server != null) {
@@ -140,6 +160,7 @@ class AS7ServerFacet extends BaseFacet {
     }
 
     public void shutdown() {
+        // TODO this should also work for remote servers not just locally started servers
         final Server server = getServer(project);
         if (server != null) {
             server.shutdown();
@@ -166,6 +187,51 @@ class AS7ServerFacet extends BaseFacet {
                 }
                 server.shutdown();
             }
+        }
+    }
+
+    private void processDeployment(final String path, final ServerConfiguration serverConfiguration, final Type type) throws IOException, DeploymentFailedException {
+        final PackagingFacet packagingFacet = project.getFacet(PackagingFacet.class);
+        // Can't deploy what doesn't exist
+        if (!packagingFacet.getFinalArtifact().exists())
+            throw DeploymentFailedException.of("Could not deploy '%s' as it does not exist. Please build before attempting to deploy.", path);
+        final File content;
+        if (path == null) {
+            content = new File(packagingFacet.getFinalArtifact().getFullyQualifiedName());
+        } else if (path.startsWith("/")) {
+            content = new File(path);
+        } else {
+            // TODO this might not work for EAR deployments
+            content = new File(packagingFacet.getFinalArtifact().getParent().getFullyQualifiedName(), path);
+        }
+        final Server server = getServer(project);
+        final ModelControllerClient client;
+        final boolean doClose;
+        // Use the servers client if it's started
+        if (server != null && server.isStarted()) {
+            client = server.getClient();
+            doClose = false;
+        } else {
+            client = ModelControllerClient.Factory.create(serverConfiguration.getHostname(), serverConfiguration.getPort(), serverConfiguration.getCallbackHandler());
+            doClose = true;
+        }
+        try {
+            final Deployment deployment = StandaloneDeployment.create(client, content, null, type);
+            switch (deployment.execute()) {
+                case REQUIRES_RESTART: {
+                    if (shell.promptBoolean(String.format("The deployment operation (%s) requires the server be restarted. Would you like to reload now?", type), false)) {
+                        client.execute(Operations.createOperation(Operations.RELOAD));
+                    } else {
+                        shell.println(String.format("The deployment operation (%s) was successful, but the server needs to be restarted.", type));
+                    }
+                    break;
+                }
+                case SUCCESS: {
+                    shell.println(String.format("The deployment operation (%s) was successful.", type));
+                }
+            }
+        } finally {
+            if (doClose) Streams.safeClose(client);
         }
     }
 

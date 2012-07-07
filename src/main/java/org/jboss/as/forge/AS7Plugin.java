@@ -26,7 +26,6 @@ import java.io.IOException;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
-import jline.Completor;
 import org.jboss.forge.project.Project;
 import org.jboss.forge.project.facets.events.InstallFacets;
 import org.jboss.forge.shell.PromptType;
@@ -48,7 +47,7 @@ import org.jboss.forge.shell.plugins.SetupCommand;
  */
 @Alias("as7")
 @RequiresProject
-@RequiresFacet({AS7Facet.class, AS7ServerFacet.class})
+@RequiresFacet(AS7ServerFacet.class)
 public class AS7Plugin implements Plugin {
     @Inject
     private Shell shell;
@@ -78,11 +77,7 @@ public class AS7Plugin implements Plugin {
             }
         }
         // Make sure facets are installed
-        if (!project.hasAllFacets(AS7Facet.class, AS7ServerFacet.class)) {
-            install.fire(new InstallFacets(AS7Facet.class, AS7ServerFacet.class));
-        } else if (!project.hasFacet(AS7Facet.class)) {
-            install.fire(new InstallFacets(AS7Facet.class));
-        } else if (!project.hasFacet(AS7ServerFacet.class)) {
+        if (!project.hasFacet(AS7ServerFacet.class)) {
             install.fire(new InstallFacets(AS7ServerFacet.class));
         }
     }
@@ -111,18 +106,32 @@ public class AS7Plugin implements Plugin {
     }
 
     @Command
-    public void deploy(final PipeOut out) throws Exception {
-        shell.execute("mvn jboss-as:deploy");
+    public void deploy(final PipeOut out,
+                       @Option(name = "force", shortName = "f", defaultValue = "true") final boolean force,
+                       @Option(name = "hostname", shortName = "h") final String hostname,
+                       @Option(name = "port", shortName = "p", defaultValue = "0") final int port) throws Exception {
+        if (hostname != null) serverConfigurator.setHostname(hostname);
+        if (port > 0) serverConfigurator.setPort(port);
+        project.getFacet(AS7ServerFacet.class).deploy(null, serverConfigurator.configure(), force);
     }
 
     @Command
-    public void redeploy(final PipeOut out) throws Exception {
-        shell.execute("mvn jboss-as:redeploy");
+    public void redeploy(final PipeOut out,
+                         @Option(name = "hostname", shortName = "h") final String hostname,
+                         @Option(name = "port", shortName = "p", defaultValue = "0") final int port) throws Exception {
+        if (hostname != null) serverConfigurator.setHostname(hostname);
+        if (port > 0) serverConfigurator.setPort(port);
+        project.getFacet(AS7ServerFacet.class).redeploy(null, serverConfigurator.configure());
     }
 
     @Command
-    public void undeploy(final PipeOut out) throws Exception {
-        shell.execute("mvn jboss-as:undeploy");
+    public void undeploy(final PipeOut out,
+                         @Option(name = "ignore-missing", shortName = "i", defaultValue = "true") final boolean ignoreMissing,
+                         @Option(name = "hostname", shortName = "h") final String hostname,
+                         @Option(name = "port", shortName = "p", defaultValue = "0") final int port) throws Exception {
+        if (hostname != null) serverConfigurator.setHostname(hostname);
+        if (port > 0) serverConfigurator.setPort(port);
+        project.getFacet(AS7ServerFacet.class).undeploy(null, serverConfigurator.configure(), ignoreMissing);
     }
 
     @Command
