@@ -33,6 +33,7 @@ import org.jboss.forge.shell.Shell;
 import org.jboss.forge.shell.ShellMessages;
 import org.jboss.forge.shell.plugins.Alias;
 import org.jboss.forge.shell.plugins.Command;
+import org.jboss.forge.shell.plugins.DefaultCommand;
 import org.jboss.forge.shell.plugins.Option;
 import org.jboss.forge.shell.plugins.PipeOut;
 import org.jboss.forge.shell.plugins.Plugin;
@@ -83,6 +84,17 @@ public class AS7Plugin implements Plugin {
         } else if (!project.hasFacet(AS7ServerFacet.class)) {
             install.fire(new InstallFacets(AS7ServerFacet.class));
         }
+    }
+
+    @DefaultCommand
+    public void checkProperties(final PipeOut out,
+                                @Option(name = "version", shortName = "v", flagOnly = true) final boolean version,
+                                @Option(name = "jboss-home", flagOnly = true) final boolean jbossHome,
+                                @Option(name = "java-home", flagOnly = true) final boolean javaHome) {
+        final ServerConfiguration defaultConfig = serverConfigurator.defaultConfiguration();
+        if (version) shell.println(String.format("Version: %s", defaultConfig.getVersion()));
+        if (jbossHome) shell.println(String.format("JBoss Home: %s", defaultConfig.getJbossHome()));
+        if (javaHome) shell.println(String.format("Java Home: %s", defaultConfig.getJavaHome()));
     }
 
     @Command
