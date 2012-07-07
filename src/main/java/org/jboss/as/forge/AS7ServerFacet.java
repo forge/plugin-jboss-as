@@ -104,7 +104,7 @@ class AS7ServerFacet extends BaseFacet {
         if (!serverConfiguration.getJbossHome().exists()) {
             // If the JBoss Home is the projects target directory, just download and install
             if (serverConfiguration.getJbossHome().getParentFile().equals(getProjectTarget())) {
-                downloadAndInstall(serverConfiguration.getJbossHome(), serverConfiguration.getVersion());
+                downloadAndInstall(serverConfiguration.getJbossHome().getParentFile(), serverConfiguration.getVersion());
             } else {
                 ShellMessages.error(shell, String.format("JBoss AS %s could not be started due to an invalid or missing install at '%s'.",
                         serverConfiguration.getVersion(), serverConfiguration.getJbossHome()));
@@ -223,7 +223,7 @@ class AS7ServerFacet extends BaseFacet {
         final String result = shell.prompt("Enter path for JBoss AS or leave blank to download:");
         final File jbossHome;
         if (result.isEmpty()) {
-            jbossHome = downloadAndInstall(serverConfigurator.formatDefaultJbossHome(version), version);
+            jbossHome = downloadAndInstall(serverConfigurator.getProjectTarget(), version);
             serverConfigurator.setJbossHome(null);
         } else {
             jbossHome = new File(result);
@@ -240,15 +240,14 @@ class AS7ServerFacet extends BaseFacet {
     }
 
     // TODO version *may* not be necessary
-    private File downloadAndInstall(final File baseDir, final Version version) {
+    protected File downloadAndInstall(final File baseDir, final Version version) {
         if (shell.promptBoolean(String.format("You are about to download JBoss AS %s to '%s' which could take a while. Would you like to continue?", version, baseDir))) {
             final List<DependencyResource> asArchive = dependencyResolver.resolveArtifacts(version.getDependency());
             if (asArchive.isEmpty()) {
                 throw new IllegalStateException(String.format("Could not find artifact: %s", version.getDependency()));
             }
             final DependencyResource zipFile = asArchive.get(0);
-            // For now just delete the target
-            return extract(zipFile, baseDir.getParentFile());
+            return extract(zipFile, baseDir);
         }
         return null;
     }

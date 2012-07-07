@@ -26,6 +26,7 @@ import java.io.IOException;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
+import jline.Completor;
 import org.jboss.forge.project.Project;
 import org.jboss.forge.project.facets.events.InstallFacets;
 import org.jboss.forge.shell.PromptType;
@@ -95,6 +96,18 @@ public class AS7Plugin implements Plugin {
         if (version) shell.println(String.format("Version: %s", defaultConfig.getVersion()));
         if (jbossHome) shell.println(String.format("JBoss Home: %s", defaultConfig.getJbossHome()));
         if (javaHome) shell.println(String.format("Java Home: %s", defaultConfig.getJavaHome()));
+    }
+
+    @Command(value = "install", help = "Downloads, if needed, and installs JBoss Application Server to the specified directory.")
+    public void downloadAndInstall(final PipeOut out, @Option(name = "directory", shortName = "dir", required = true) final File jbossHome,
+                                   @Option(name = "version", completer = VersionCompleter.class, required = true) final String version) throws Exception {
+        // Valid the version
+        if (versions.isValidVersion(version)) {
+            shell.println(String.format("JBoss AS %s downloaded and installed at: %s", version,
+                    project.getFacet(AS7ServerFacet.class).downloadAndInstall(jbossHome, versions.fromString(version))));
+        } else {
+            ShellMessages.error(shell, String.format("Version '%s' is invalid. Must be one of: %s", version, versions.getVersions()));
+        }
     }
 
     @Command

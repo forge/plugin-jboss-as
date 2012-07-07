@@ -316,7 +316,7 @@ public class ProjectServerConfigurator implements ServerConfigurator {
         return Files.createFile(getProjectTarget(), version.getArchiveDir());
     }
 
-    private File getProjectTarget() {
+    protected File getProjectTarget() {
         final PackagingFacet packaging = project.getFacet(PackagingFacet.class);
         return new File(packaging.getFinalArtifact().getParent().getFullyQualifiedName(), "jboss-as-dist");
     }
