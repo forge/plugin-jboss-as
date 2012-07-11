@@ -28,7 +28,8 @@ import javax.inject.Inject;
 
 import org.jboss.forge.project.Project;
 import org.jboss.forge.project.facets.events.InstallFacets;
-import org.jboss.forge.shell.PromptType;
+import org.jboss.forge.resources.FileResource;
+import org.jboss.forge.resources.Resource;
 import org.jboss.forge.shell.Shell;
 import org.jboss.forge.shell.ShellMessages;
 import org.jboss.forge.shell.plugins.Alias;
@@ -94,14 +95,21 @@ public class AS7Plugin implements Plugin {
     }
 
     @Command(value = "install", help = "Downloads, if needed, and installs JBoss Application Server to the specified directory.")
-    public void downloadAndInstall(final PipeOut out, @Option(name = "directory", shortName = "dir", required = true) final File jbossHome,
+    public void downloadAndInstall(final PipeOut out, @Option(required = true) final Resource<?> jbossHome,
                                    @Option(name = "version", completer = VersionCompleter.class, required = true) final String version) throws Exception {
+        boolean ok = true;
+        if (!(jbossHome instanceof FileResource && ((FileResource<?>) jbossHome).isDirectory())) {
+            ok = false;
+            ShellMessages.error(shell, String.format("JBoss Home '%s' is not a directory.", jbossHome.getFullyQualifiedName()));
+        }
         // Valid the version
-        if (versions.isValidVersion(version)) {
-            shell.println(String.format("JBoss AS %s downloaded and installed at: %s", version,
-                    project.getFacet(AS7ServerFacet.class).downloadAndInstall(jbossHome, versions.fromString(version))));
-        } else {
+        if (!versions.isValidVersion(version)) {
+            ok = false;
             ShellMessages.error(shell, String.format("Version '%s' is invalid. Must be one of: %s", version, versions.getVersions()));
+        }
+        if (ok) {
+            shell.println(String.format("JBoss AS %s downloaded and installed at: %s", version,
+                    project.getFacet(AS7ServerFacet.class).downloadAndInstall(new File(jbossHome.getFullyQualifiedName()), versions.fromString(version))));
         }
     }
 
@@ -135,16 +143,18 @@ public class AS7Plugin implements Plugin {
     }
 
     @Command
-    public void start(final PipeOut out, @Option(name = "jboss-home", type = PromptType.FILE_PATH) final String jbossHome,
+    public void start(final PipeOut out, @Option(name = "jboss-home") final Resource<?> jbossHome,
                       @Option(name = "java-home") final String javaHome,
                       @Option(name = "version", completer = VersionCompleter.class) final String version) throws Exception {
         if (needsSetUp()) return;
+        boolean ok = true;
 
         // Version always needs to be set first
         if (version != null) {
             if (versions.isValidVersion(version)) {
                 serverConfigurator.setVersion(versions.fromString(version));
             } else {
+                ok = false;
                 ShellMessages.error(shell, String.format("Invalid version '%s'. Valid versions: %s", version, versions.getAllVersions()));
             }
         }
@@ -154,10 +164,15 @@ public class AS7Plugin implements Plugin {
             serverConfigurator.setJavaHome(javaHome);
         }
         if (jbossHome != null) {
-            serverConfigurator.setJbossHome(new File(jbossHome));
+            if (jbossHome instanceof FileResource && ((FileResource<?>) jbossHome).isDirectory()) {
+                serverConfigurator.setJbossHome(new File(jbossHome.getFullyQualifiedName()));
+            } else {
+                ok = false;
+                ShellMessages.error(shell, String.format("JBoss Home '%s' is not a directory.", jbossHome.getFullyQualifiedName()));
+            }
         }
         // Get the server facet
-        project.getFacet(AS7ServerFacet.class).start(serverConfigurator.configure());
+        if (ok) project.getFacet(AS7ServerFacet.class).start(serverConfigurator.configure());
     }
 
     @Command(help = "Checks the status of the server.")
