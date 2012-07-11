@@ -44,8 +44,21 @@ import org.jboss.forge.shell.project.ProjectScoped;
 @ProjectScoped
 public class ClientCallbackHandler implements CallbackHandler {
 
+    private String username;
+    private char[] password;
+
     @Inject
     private Shell shell;
+
+    public ClientCallbackHandler() {
+        this.username = null;
+        this.password = null;
+    }
+
+    public ClientCallbackHandler(final String username, final char[] password) {
+        this.username = username;
+        this.password = password;
+    }
 
     @Override
     public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
@@ -66,12 +79,15 @@ public class ClientCallbackHandler implements CallbackHandler {
                 throw new UnsupportedCallbackException(current, "Realm choice not currently supported.");
             } else if (current instanceof NameCallback) {
                 NameCallback ncb = (NameCallback) current;
-                String userName = shell.prompt("Username:");
+                // TODO using a secret should be temporary at best for the user name. The issues is any other prompt blocks as the ShellImpl blocks on an executionLock.
+                if (username == null)
+                    username = shell.promptSecret("Username:");
 
-                ncb.setName(userName);
+                ncb.setName(username);
             } else if (current instanceof PasswordCallback) {
                 PasswordCallback pcb = (PasswordCallback) current;
-                char[] password = shell.promptSecret("Password:").toCharArray();
+                if (password == null)
+                    password = shell.promptSecret("Password:").toCharArray();
 
                 pcb.setPassword(password);
             } else {
