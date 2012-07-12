@@ -26,14 +26,15 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FilePermission;
 import java.io.IOException;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.forge.server.Operations;
 import org.jboss.as.forge.server.Server;
@@ -43,6 +44,7 @@ import org.jboss.as.forge.server.deployment.Deployment;
 import org.jboss.as.forge.server.deployment.Deployment.Type;
 import org.jboss.as.forge.server.deployment.DeploymentFailedException;
 import org.jboss.as.forge.server.deployment.standalone.StandaloneDeployment;
+import org.jboss.as.forge.util.FilePermissions;
 import org.jboss.as.forge.util.Files;
 import org.jboss.as.forge.util.Streams;
 import org.jboss.forge.project.Project;
@@ -330,10 +332,10 @@ class AS7ServerFacet extends BaseFacet {
         ZipFile file = null;
         try {
             file = new ZipFile(zipFile.getFullyQualifiedName());
-            final Enumeration<? extends ZipEntry> entries = file.entries();
+            final Enumeration<ZipArchiveEntry> entries = file.getEntries();
             boolean firstEntry = true;
             while (entries.hasMoreElements()) {
-                final ZipEntry entry = entries.nextElement();
+                final ZipArchiveEntry entry = entries.nextElement();
                 // Create the extraction target
                 final File extractTarget = new File(target, entry.getName());
                 // First entry should be a the base directory
@@ -369,13 +371,24 @@ class AS7ServerFacet extends BaseFacet {
                     } finally {
                         Streams.safeClose(in);
                     }
+                    // Set the file permissions
+                    if (entry.getUnixMode() > 0) {
+                        setPermissions(extractTarget, FilePermissions.of(entry.getUnixMode()));
+                    }
                 }
             }
         } catch (IOException e) {
-            throw new IllegalStateException(String.format("Error extracting '%s'", (file == null ? "null file" : file.getName())), e);
+            throw new IllegalStateException(String.format("Error extracting '%s'", (file == null ? "null file" : file)), e);
         } finally {
-            Streams.safeClose(file);
+            ZipFile.closeQuietly(file);
+            // Streams.safeClose(file);
         }
         return result;
+    }
+
+    private static void setPermissions(final File file, final FilePermissions permissions) {
+        file.setExecutable(permissions.owner().canExecute(), !(permissions.group().canExecute() && permissions.pub().canExecute()));
+        file.setReadable(permissions.owner().canWrite(), !(permissions.group().canWrite() && permissions.pub().canWrite()));
+        file.setWritable(permissions.owner().canWrite(), !(permissions.group().canWrite() && permissions.pub().canWrite()));
     }
 }
