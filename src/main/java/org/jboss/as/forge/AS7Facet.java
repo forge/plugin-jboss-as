@@ -25,27 +25,31 @@ import org.jboss.forge.maven.MavenPluginFacet;
 import org.jboss.forge.maven.plugins.MavenPluginBuilder;
 import org.jboss.forge.project.dependencies.DependencyBuilder;
 import org.jboss.forge.project.facets.BaseFacet;
+import org.jboss.forge.shell.plugins.RequiresFacet;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
- * 
  */
-public class AS7Facet extends BaseFacet
-{
-   @Override
-   public boolean install()
-   {
-      MavenPluginFacet pluginFacet = project.getFacet(MavenPluginFacet.class);
-      pluginFacet.addPlugin(MavenPluginBuilder.create()
-               .setDependency(DependencyBuilder.create("org.jboss.as.plugins:jboss-as-maven-plugin:7.1.1.Final")));
-      return true;
-   }
+@RequiresFacet(MavenPluginFacet.class)
+public class AS7Facet extends BaseFacet {
 
-   @Override
-   public boolean isInstalled()
-   {
-      MavenPluginFacet pluginFacet = project.getFacet(MavenPluginFacet.class);
-      return pluginFacet.hasPlugin(DependencyBuilder.create("org.jboss.as.plugins:jboss-as-maven-plugin"));
-   }
+    public static final String AS7_PLUGIN_VERSION = "7.1.1.Final";
 
+    private final DependencyBuilder plugin = DependencyBuilder.create("org.jboss.as.plugins:jboss-as-maven-plugin");
+
+    @Override
+    public boolean install() {
+        // TODO (jrp) This may be removed in the future
+        MavenPluginFacet pluginFacet = project.getFacet(MavenPluginFacet.class);
+        if (!pluginFacet.hasPlugin(plugin))
+            pluginFacet.addPlugin(MavenPluginBuilder.create()
+                    .setDependency(DependencyBuilder.create(plugin).setVersion(AS7_PLUGIN_VERSION)));
+        return true;
+    }
+
+    @Override
+    public boolean isInstalled() {
+        MavenPluginFacet pluginFacet = project.getFacet(MavenPluginFacet.class);
+        return pluginFacet.hasPlugin(plugin);
+    }
 }
