@@ -26,7 +26,6 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FilePermission;
 import java.io.IOException;
 import java.util.Enumeration;
 import java.util.List;
@@ -54,6 +53,7 @@ import org.jboss.forge.project.facets.PackagingFacet;
 import org.jboss.forge.resources.DependencyResource;
 import org.jboss.forge.shell.Shell;
 import org.jboss.forge.shell.ShellMessages;
+import org.jboss.forge.shell.Wait;
 import org.jboss.forge.shell.events.PreShutdown;
 import org.jboss.forge.shell.events.ProjectChanged;
 import org.jboss.forge.shell.plugins.RequiresFacet;
@@ -63,6 +63,9 @@ import org.jboss.forge.shell.plugins.RequiresFacet;
  */
 @RequiresFacet(PackagingFacet.class)
 class AS7ServerFacet extends BaseFacet {
+    @Inject
+    private Wait wait;
+
     @Inject
     private Shell shell;
 
@@ -310,12 +313,17 @@ class AS7ServerFacet extends BaseFacet {
     // TODO version *may* not be necessary
     protected File downloadAndInstall(final File baseDir, final Version version) {
         if (shell.promptBoolean(String.format("You are about to download JBoss AS %s to '%s' which could take a while. Would you like to continue?", version, baseDir))) {
-            final List<DependencyResource> asArchive = dependencyResolver.resolveArtifacts(version.getDependency());
-            if (asArchive.isEmpty()) {
-                throw new IllegalStateException(String.format("Could not find artifact: %s", version.getDependency()));
+            wait.start(String.format("Downloading JBoss AS %s.", version));
+            try {
+                final List<DependencyResource> asArchive = dependencyResolver.resolveArtifacts(version.getDependency());
+                if (asArchive.isEmpty()) {
+                    throw new IllegalStateException(String.format("Could not find artifact: %s", version.getDependency()));
+                }
+                final DependencyResource zipFile = asArchive.get(0);
+                return extract(zipFile, baseDir);
+            } finally {
+                wait.stop();
             }
-            final DependencyResource zipFile = asArchive.get(0);
-            return extract(zipFile, baseDir);
         }
         return null;
     }
