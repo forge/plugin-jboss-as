@@ -75,7 +75,12 @@ public class ProjectServerConfigurator implements ServerConfigurator {
 
     @Override
     public boolean hasConfiguration() {
-        return configuration.getScopedConfiguration(ConfigurationScope.PROJECT).containsKey(PropertyKey.CONFIGURED);
+        // Quick fix if the configuration is not yet setup when creating a new project
+        try {
+            return configuration.getScopedConfiguration(ConfigurationScope.PROJECT).containsKey(PropertyKey.CONFIGURED);
+        } catch (Exception ignore) {
+        }
+        return false;
     }
 
     @Override
