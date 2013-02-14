@@ -13,6 +13,19 @@
         <version.compiler.plugin>2.3.2</version.compiler.plugin>
         <version.org.jboss.remoting3>3.2.12.GA</version.org.jboss.remoting3>
     </properties>
+
+
+    <issueManagement>
+        <system>JIRA</system>
+        <url>https://issues.jboss.org/browse/FORGEPLUGINS</url>
+    </issueManagement>
+
+    <scm>
+        <connection>scm:git:git@github.com:forge/plugin-jboss-as.git</connection>
+        <developerConnection>scm:git:git@github.com:forge/plugin-jboss-as.git</developerConnection>
+        <url>https://github.com/forge/plugin-jboss-as</url>
+    </scm>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
