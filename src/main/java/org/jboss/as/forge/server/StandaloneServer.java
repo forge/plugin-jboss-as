@@ -30,8 +30,6 @@ import java.util.List;
 
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.forge.ServerConfiguration;
-import org.jboss.as.forge.server.deployment.Deployment;
-import org.jboss.as.forge.server.deployment.standalone.StandaloneDeployment;
 import org.jboss.as.forge.util.Files;
 import org.jboss.as.forge.util.Streams;
 import org.jboss.dmr.ModelNode;
@@ -139,8 +137,13 @@ public final class StandaloneServer extends Server {
         final File modulesJar = new File(Files.createPath(jbossHome.getAbsolutePath(), "jboss-modules.jar"));
         if (!modulesJar.exists())
             throw new IllegalStateException("Cannot find: " + modulesJar);
-        String javaExec = Files.createPath(javaHome, "bin", "java");
-        if (javaHome.contains(" ")) {
+        String javaExec;
+        if (javaHome == null) {
+            javaExec = "java";
+        } else {
+            javaExec = Files.createPath(javaHome, "bin", "java");
+        }
+        if (javaExec.contains(" ")) {
             javaExec = "\"" + javaExec + "\"";
         }
 
