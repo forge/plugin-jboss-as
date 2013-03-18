@@ -27,13 +27,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
 
 import org.jboss.forge.project.dependencies.Dependency;
 import org.jboss.forge.project.dependencies.DependencyBuilder;
-import org.jboss.forge.project.dependencies.DependencyResolver;
 import org.jboss.forge.shell.project.ProjectScoped;
 
 /**
@@ -44,32 +42,28 @@ public class Versions {
     private static final Dependency BASE = DependencyBuilder.create().setGroupId("org.jboss.as").
             setArtifactId("jboss-as-dist").setPackagingType("zip");
 
-    @Inject
-    private DependencyResolver dependencyResolver;
+    private static final Dependency[] VERSIONS = {
+            DependencyBuilder.create(BASE).setVersion("7.0.0.Final"),
+            DependencyBuilder.create(BASE).setVersion("7.0.1.Final"),
+            DependencyBuilder.create(BASE).setVersion("7.0.2.Final"),
+            DependencyBuilder.create(BASE).setVersion("7.1.0.Final"),
+            DependencyBuilder.create(BASE).setVersion("7.1.1.Final"),
+    };
 
-    private Map<String, Version> allVersions;
-    private TreeSet<Version> snapshotVersions;
-    private TreeSet<Version> versions;
-    private Version defaultVersion;
+    private final Map<String, Version> allVersions;
+    private final Set<Version> snapshotVersions;
+    private final TreeSet<Version> versions;
+    private final Version defaultVersion;
 
     public Versions() {
         allVersions = new HashMap<String, Version>();
-        snapshotVersions = new TreeSet<Version>();
+        snapshotVersions = Collections.emptySet();
         versions = new TreeSet<Version>();
-    }
-
-    @PostConstruct
-    protected void init() {
-        final List<Dependency> dependencies = dependencyResolver.resolveVersions(BASE);
-        for (Dependency dependency : dependencies) {
+        for (Dependency dependency : VERSIONS) {
             final String stringVersion = dependency.getVersion();
-            final String archiveDir = (stringVersion.equals("7.0.0.CR1") ? String.format("jbossas-%s", stringVersion) : String.format("jboss-as-%s", stringVersion));
+            final String archiveDir = String.format("jboss-as-%s", stringVersion);
             final Version version = Version.of(dependency, archiveDir, stringVersion.startsWith("7.0"));
-            if (stringVersion.contains("SNAPSHOT")) {
-                snapshotVersions.add(version);
-            } else {
-                versions.add(version);
-            }
+            versions.add(version);
             allVersions.put(version.toString(), version);
         }
         defaultVersion = versions.last();
