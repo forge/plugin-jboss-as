@@ -71,11 +71,11 @@ public class CliCommandCompleter implements CommandCompleter {
         cmdRegistry.registerHandler(new DeploymentInfoHandler(context), "deployment-info");
 
         // batch commands
-        cmdRegistry.registerHandler(new BatchHandler(), "batch");
+        cmdRegistry.registerHandler(new BatchHandler(context), "batch");
         cmdRegistry.registerHandler(new BatchDiscardHandler(), "discard-batch");
         cmdRegistry.registerHandler(new BatchListHandler(), "list-batch");
         cmdRegistry.registerHandler(new BatchHoldbackHandler(), "holdback-batch");
-        cmdRegistry.registerHandler(new BatchRunHandler(), "run-batch");
+        cmdRegistry.registerHandler(new BatchRunHandler(context), "run-batch");
         cmdRegistry.registerHandler(new BatchClearHandler(), "clear-batch");
         cmdRegistry.registerHandler(new BatchRemoveLineHandler(), "remove-batch-line");
         cmdRegistry.registerHandler(new BatchMoveLineHandler(), "move-batch-line");

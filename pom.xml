@@ -8,9 +8,8 @@
     <properties>
         <version.org.apache.commons.commons-compress>1.4.1</version.org.apache.commons.commons-compress>
 
-        <version.org.jboss.as>7.1.1.Final</version.org.jboss.as>
-        <version.org.jboss.forge.api>1.2.0.Final</version.org.jboss.forge.api>
-        <version.org.jboss.remoting3>3.2.12.GA</version.org.jboss.remoting3>
+        <version.org.jboss.as>7.2.0.Final</version.org.jboss.as>
+        <version.org.jboss.forge.api>1.2.2.Final</version.org.jboss.forge.api>
         <version.org.jboss.spec>3.0.2.Final</version.org.jboss.spec>
 
         <version.compiler.plugin>3.0</version.compiler.plugin>
@@ -74,15 +73,6 @@
                 <artifactId>jboss-as-cli</artifactId>
                 <version>${version.org.jboss.as}</version>
             </dependency>
-            <!--
-                This is only added as remoting 3 has some backwards compatibility issues when deploying to newer releases.
-                Remove this when AS version aligns the remoting version.
-             -->
-            <dependency>
-                <groupId>org.jboss.remoting3</groupId>
-                <artifactId>jboss-remoting</artifactId>
-                <version>${version.org.jboss.remoting3}</version>
-            </dependency>
 
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -131,14 +121,6 @@
         <dependency>
             <groupId>org.jboss.as</groupId>
             <artifactId>jboss-as-cli</artifactId>
-        </dependency>
-        <!--
-            This is only added as remoting 3 has some backwards compatibility issues when deploying to newer releases.
-            Remove this when AS version aligns the remoting version.
-         -->
-        <dependency>
-            <groupId>org.jboss.remoting3</groupId>
-            <artifactId>jboss-remoting</artifactId>
         </dependency>
 
         <dependency>
