@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2012, Red Hat, Inc., and individual contributors
+ * Copyright 2013, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -20,24 +20,49 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.forge.server.deployment;
+package org.jboss.as.forge;
+
+import java.io.PrintWriter;
+import java.io.Writer;
+
+import org.jboss.dmr.ModelNode;
 
 /**
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
  */
-public class DeploymentFailedException extends RuntimeException {
-    public DeploymentFailedException() {
+class ResultMessage {
+
+    public static enum Level {
+        SUCCESS,
+        INFO,
+        WARN,
+        ERROR,
+
     }
 
-    public DeploymentFailedException(final String message) {
-        super(message);
+    private final Level level;
+    private final String message;
+
+    public ResultMessage(final Level level, final String message) {
+        this.level = level;
+        this.message = message;
     }
 
-    public DeploymentFailedException(final String message, final Throwable cause) {
-        super(message, cause);
+    public static ResultMessage of(final Level level, final String message) {
+        return new ResultMessage(level, message);
     }
 
-    public DeploymentFailedException(final Throwable cause) {
-        super(cause);
+    public static ResultMessage of(final Level level, final Object message) {
+        return new ResultMessage(level, String.valueOf(message));
     }
+
+    public Level getLevel() {
+        return level;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    private static void write(final Writer writer) {}
 }

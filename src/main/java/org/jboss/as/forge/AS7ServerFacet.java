@@ -22,38 +22,33 @@
 
 package org.jboss.as.forge;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.FileFilter;
 import java.io.IOException;
-import java.util.Enumeration;
-import java.util.List;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
+import javax.security.auth.callback.CallbackHandler;
 
-import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
-import org.apache.commons.compress.archivers.zip.ZipFile;
+import org.jboss.as.cli.CliInitializationException;
+import org.jboss.as.cli.CommandContext;
+import org.jboss.as.cli.CommandContextFactory;
+import org.jboss.as.cli.CommandFormatException;
 import org.jboss.as.controller.client.ModelControllerClient;
-import org.jboss.as.forge.server.Operations;
+import org.jboss.as.forge.ResultMessage.Level;
 import org.jboss.as.forge.server.Server;
 import org.jboss.as.forge.server.Server.State;
-import org.jboss.as.forge.server.StandaloneServer;
+import org.jboss.as.forge.server.ServerBuilder;
+import org.jboss.as.forge.server.ServerOperations;
 import org.jboss.as.forge.server.deployment.Deployment;
 import org.jboss.as.forge.server.deployment.Deployment.Type;
 import org.jboss.as.forge.server.deployment.DeploymentFailedException;
 import org.jboss.as.forge.server.deployment.standalone.StandaloneDeployment;
-import org.jboss.as.forge.util.FilePermissions;
-import org.jboss.as.forge.util.Files;
-import org.jboss.as.forge.util.Streams;
-import org.jboss.forge.project.Project;
-import org.jboss.forge.project.dependencies.DependencyResolver;
+import org.jboss.as.forge.util.Messages;
+import org.jboss.dmr.ModelNode;
 import org.jboss.forge.project.facets.BaseFacet;
 import org.jboss.forge.project.facets.PackagingFacet;
-import org.jboss.forge.resources.DependencyResource;
-import org.jboss.forge.shell.Shell;
-import org.jboss.forge.shell.ShellMessages;
-import org.jboss.forge.shell.Wait;
 import org.jboss.forge.shell.events.PreShutdown;
 import org.jboss.forge.shell.events.ProjectChanged;
 import org.jboss.forge.shell.plugins.RequiresFacet;
@@ -63,143 +58,190 @@ import org.jboss.forge.shell.plugins.RequiresFacet;
  */
 @RequiresFacet(PackagingFacet.class)
 class AS7ServerFacet extends BaseFacet {
-    @Inject
-    private Wait wait;
 
     @Inject
-    private Shell shell;
+    private ProjectConfiguration configuration;
 
     @Inject
-    private DependencyResolver dependencyResolver;
+    private CallbackHandler callbackHandler;
+
+    private final Messages messages = Messages.INSTANCE;
 
     @Inject
-    private Versions versions;
-
-    @Inject
-    private ProjectServerConfigurator serverConfigurator;
+    private ServerController serverController;
 
     @Override
     public boolean install() {
-        return configure();
+        // TODO (jrp) do something to install it
+        return true;
+    }
+
+    @Override
+    public boolean uninstall() {
+        configuration.clearConfig();
+        return true;
     }
 
     @Override
     public boolean isInstalled() {
-        return serverConfigurator.hasConfiguration();
+        return configuration.getJbossHome() != null;
     }
 
-    public void deploy(final String path, final ServerConfiguration serverConfiguration, final boolean force) throws IOException, DeploymentFailedException {
-        processDeployment(path, serverConfiguration, (force ? Type.FORCE_DEPLOY : Type.DEPLOY));
-    }
-
-    public void redeploy(final String path, final ServerConfiguration serverConfiguration) throws IOException, DeploymentFailedException {
-        processDeployment(path, serverConfiguration, Type.REDEPLOY);
-    }
-
-    public void undeploy(final String path, final ServerConfiguration serverConfiguration, final boolean ignoreMissing) throws IOException, DeploymentFailedException {
-        processDeployment(path, serverConfiguration, (ignoreMissing ? Type.UNDEPLOY_IGNORE_MISSING : Type.UNDEPLOY));
-    }
-
-    protected boolean configure() {
-        final Server server = getServer(project);
-        if (server != null && server.isStarted()) {
-            return false;
+    public ResultMessage override(final String hostname, final int port) {
+        if (hostname != null) {
+            configuration.setHostname(hostname);
         }
-        return promptConfiguration();
-    }
-
-    public boolean isStarted() {
-        final Server server = getServer(project);
-        return server != null && server.isStarted();
-    }
-
-    public void executeCommand(final String cmd) throws IOException {
-        // TODO this should also work for remote servers not just locally started servers
-        final Server server = getServer(project);
-        if (server == null) {
-            ShellMessages.error(shell, "The server is not running.");
-        } else {
-            server.executeCliCommand(cmd);
+        if (port > 0) {
+            configuration.setPort(port);
         }
+        ResultMessage result = ResultMessage.of(Level.SUCCESS, messages.getMessage("override.success", configuration.getHostname(), configuration
+                .getPort()));
+        // Check for a running server
+        if (serverController.hasServer()) {
+            result = ResultMessage.of(Level.SUCCESS, messages.getMessage("override.success.running.server", configuration
+                    .getHostname(), configuration.getPort()));
+        } else if (serverController.hasClient()) {
+            // Close the connection if there is one
+            serverController.closeClient();
+        }
+        return result;
     }
 
-    public void start(final ServerConfiguration serverConfiguration) throws IOException {
-        // Make sure the server is installed
-        if (!serverConfiguration.getJbossHome().exists()) {
-            // If the JBoss Home is the projects target directory, just download and install
-            if (serverConfiguration.getJbossHome().getParentFile().equals(getProjectTarget())) {
-                downloadAndInstall(serverConfiguration.getJbossHome().getParentFile(), serverConfiguration.getVersion());
+    public ResultMessage deploy(final String path, final boolean force) throws IOException, DeploymentFailedException {
+        return processDeployment(path, (force ? Type.FORCE_DEPLOY : Type.DEPLOY));
+    }
+
+    public ResultMessage redeploy(final String path) throws IOException, DeploymentFailedException {
+        return processDeployment(path, Type.REDEPLOY);
+    }
+
+    public ResultMessage undeploy(final String path, final boolean ignoreMissing) throws IOException, DeploymentFailedException {
+        return processDeployment(path, (ignoreMissing ? Type.UNDEPLOY_IGNORE_MISSING : Type.UNDEPLOY));
+    }
+
+    public ResultMessage executeCommand(final String cmd) throws IOException {
+        if (!getState().isRunningState()) {
+            return ResultMessage.of(Level.ERROR, messages.getMessage("server.not.running", configuration.getHostname(), configuration
+                    .getPort()));
+        }
+        ResultMessage result;
+        try {
+            final ModelControllerClient client = getClient();
+            final CommandContext ctx = CommandContextFactory.getInstance().newCommandContext();
+            final ModelNode op = ctx.buildRequest(cmd);
+            final ModelNode outcome = client.execute(op);
+            if (ServerOperations.isSuccessfulOutcome(outcome)) {
+                result = ResultMessage.of(Level.SUCCESS, outcome.toString());
             } else {
-                ShellMessages.error(shell, String.format("JBoss AS %s could not be started due to an invalid or missing install at '%s'.",
-                        serverConfiguration.getVersion(), serverConfiguration.getJbossHome()));
-                return;
+                result = ResultMessage.of(Level.ERROR, ServerOperations.getFailureDescriptionAsString(outcome));
             }
+        } catch (CliInitializationException e) {
+            result = ResultMessage.of(Level.ERROR, messages.getMessage("cmd.context.create.failure", e.getLocalizedMessage()));
+        } catch (CommandFormatException e) {
+            result = ResultMessage.of(Level.ERROR, messages.getMessage("cmd.invalid", cmd, e.getLocalizedMessage()));
         }
-        Server server = getServer(project);
-        if (server == null) {
-            server = new StandaloneServer(shell);
-            setServer(project, server); // TODO (jrp) see if there is a better way to store this
-        }
-        if (server.isStarted()) {
-            ShellMessages.error(shell, "The server is already running.");
+        return result;
+    }
+
+    public ResultMessage start(final File jbossHome, final Version version, final String javaHome) throws IOException {
+        ResultMessage result;
+        if ((serverController.hasServer() && serverController.getServer().isRunning()) || getState().isRunningState()) {
+            result = ResultMessage.of(Level.ERROR, messages.getMessage("server.already.running"));
         } else {
-            server.start(serverConfiguration);
-            if (server.isStarted()) {
-                ShellMessages.info(shell, String.format("JBoss AS %s has successfully started.", serverConfiguration.getVersion()));
-            } else {
-                ShellMessages.info(shell, String.format("JBoss AS %s has failed to start. Status: %s", serverConfiguration.getVersion(), server.getState()));
-            }
-        }
-    }
-
-    public void status() {
-        // TODO this should also work for remote servers not just locally started servers
-        final Server server = getServer(project);
-        final State state;
-        if (server != null) {
-            state = server.getState();
-        } else {
-            state = State.SHUTDOWN;
-        }
-        ShellMessages.info(shell, String.format("Server Status: %s", state));
-    }
-
-    public void shutdown() {
-        // TODO this should also work for remote servers not just locally started servers
-        final Server server = getServer(project);
-        if (server != null) {
-            server.shutdown();
-            ShellMessages.info(shell, "JBoss AS has successfully shutdown.");
-        } else {
-            ShellMessages.error(shell, "The server is has not been created.");
-        }
-    }
-
-    protected void shutdown(@Observes final ProjectChanged event) {
-        shutdown(event.getOldProject());
-    }
-
-    protected void shutdown(@Observes final PreShutdown event) {
-        shutdown(project);
-    }
-
-    private void shutdown(final Project project) {
-        if (project != null) {
-            final Server server = getServer(project);
-            if (server != null) {
-                if (shell != null && server.isStarted()) {
-                    ShellMessages.info(shell, "An event occurred that requires the server be shutdown.");
+            final File targetHome = jbossHome == null ? configuration.getJbossHome() : jbossHome;
+            final String jreHome = javaHome == null ? configuration.getJavaHome() : javaHome;
+            final Server server = ServerBuilder.of(callbackHandler, targetHome, version.requiresLogModule())
+                    .setBundlesDir(configuration.getBundlesDir())
+                    .setHostAddress(InetAddress.getByName(configuration.getHostname()))
+                    .setJavaHome(jreHome)
+                    .setJvmArgs(configuration.getJvmArgs())
+                    .setModulesDir(configuration.getModulesDir())
+                    .setPort(configuration.getPort())
+                    .setServerConfig(configuration.getServerConfigFile())
+                    .build();
+            server.start(configuration.getStartupTimeout());
+            try {
+                if (server.isRunning()) {
+                    result = ResultMessage.of(Level.SUCCESS, messages.getMessage("server.start.success", configuration
+                            .getVersion()));
+                    // Close any previously connected clients
+                    serverController.closeClient();
+                    serverController.setServer(server);
+                } else {
+                    result = ResultMessage.of(Level.ERROR, messages.getMessage("server.start.failed", configuration.getVersion()));
                 }
-                server.shutdown();
+            } catch (Exception e) {
+                result = ResultMessage.of(Level.ERROR, messages.getMessage("server.start.failed.exception", configuration
+                        .getVersion(), e.getLocalizedMessage()));
             }
         }
+        return result;
     }
 
-    private void processDeployment(final String path, final ServerConfiguration serverConfiguration, final Type type) throws IOException, DeploymentFailedException {
+    public State getState() {
+        State result = State.SHUTDOWN;
+        try {
+            final ModelNode response = getClient().execute(ServerOperations.READ_STATE_OP);
+            if (ServerOperations.isSuccessfulOutcome(response)) {
+                result = State.fromModel(ServerOperations.readResult(response));
+            }
+        } catch (IOException ignore) {
+            result = State.UNKNOWN;
+        }
+        return result;
+    }
+
+    public ResultMessage shutdown() {
+        ResultMessage result = ResultMessage.of(Level.SUCCESS, messages.getMessage("server.shutdown.success"));
+        final Server server = serverController.getServer();
+        if (server == null) {
+            try {
+                final ModelNode response = getClient().execute(ServerOperations.SHUTDOWN_OP);
+                if (ServerOperations.isSuccessfulOutcome(response)) {
+                    result = ResultMessage.of(Level.SUCCESS, ServerOperations.readResultAsString(response));
+                } else {
+                    result = ResultMessage.of(Level.ERROR, ServerOperations.readResultAsString(response));
+                }
+            } catch (IOException e) {
+                result = ResultMessage.of(Level.ERROR, e.getLocalizedMessage());
+            } finally {
+                serverController.closeClient();
+            }
+        } else {
+            serverController.shutdownServer();
+        }
+        return result;
+    }
+
+    protected void closeClient(@Observes final ProjectChanged event) {
+        serverController.closeClient();
+    }
+
+    protected void shutdownServer(@Observes final PreShutdown event) {
+        serverController.shutdownServer();
+        serverController.closeClient();
+    }
+
+    protected boolean isValidJBossHome(final File jbossHome) {
+        if (jbossHome != null && jbossHome.exists() && jbossHome.isDirectory()) {
+            // Search for jboss-modules.jar
+            final File[] files = jbossHome.listFiles(new FileFilter() {
+                @Override
+                public boolean accept(final File pathname) {
+                    return "jboss-modules.jar".equals(pathname.getName());
+                }
+            });
+            return files != null && files.length > 0;
+        }
+        return false;
+    }
+
+    private ResultMessage processDeployment(final String path, final Type type) throws IOException, DeploymentFailedException {
         final PackagingFacet packagingFacet = project.getFacet(PackagingFacet.class);
+        ResultMessage result;
         // Can't deploy what doesn't exist
         if (!packagingFacet.getFinalArtifact().exists())
-            throw DeploymentFailedException.of("Could not deploy '%s' as it does not exist. Please build before attempting to deploy.", path);
+            throw new DeploymentFailedException(messages.getMessage("deployment.not.found", path, type));
         final File content;
         if (path == null) {
             content = new File(packagingFacet.getFinalArtifact().getFullyQualifiedName());
@@ -209,194 +251,31 @@ class AS7ServerFacet extends BaseFacet {
             // TODO this might not work for EAR deployments
             content = new File(packagingFacet.getFinalArtifact().getParent().getFullyQualifiedName(), path);
         }
-        final Server server = getServer(project);
-        final ModelControllerClient client;
-        final boolean doClose;
-        // Use the servers client if it's started
-        if (server != null && server.isStarted()) {
-            client = server.getClient();
-            doClose = false;
-        } else {
-            client = ModelControllerClient.Factory.create(serverConfiguration.getHostname(), serverConfiguration.getPort(), serverConfiguration.getCallbackHandler());
-            doClose = true;
-        }
+        final ModelControllerClient client = getClient();
         try {
             final Deployment deployment = StandaloneDeployment.create(client, content, null, type);
-            switch (deployment.execute()) {
-                case REQUIRES_RESTART: {
-                    if (shell.promptBoolean(String.format("The deployment operation (%s) requires the server be restarted. Would you like to reload now?", type), false)) {
-                        client.execute(Operations.createOperation(Operations.RELOAD));
-                    } else {
-                        shell.println(String.format("The deployment operation (%s) was successful, but the server needs to be restarted.", type));
-                    }
-                    break;
-                }
-                case SUCCESS: {
-                    shell.println(String.format("The deployment operation (%s) was successful.", type));
-                }
-            }
-        } finally {
-            if (doClose) Streams.safeClose(client);
-        }
-    }
-
-    private File getProjectTarget() {
-        final PackagingFacet packaging = project.getFacet(PackagingFacet.class);
-        return new File(packaging.getFinalArtifact().getParent().getFullyQualifiedName(), "jboss-as-dist");
-    }
-
-    private static Server getServer(final Project project) {
-        return (Server) project.getAttribute("server");
-    }
-
-    private static void setServer(final Project project, final Server server) {
-        project.setAttribute("server", server);
-    }
-
-    /**
-     * Configure the settings
-     *
-     * @return {@code true} if configured correct, otherwise {@code false}
-     */
-    private boolean promptConfiguration() {
-        final ServerConfiguration defaultConfig = serverConfigurator.defaultConfiguration();
-
-        // Prompt for Java Home
-        boolean doPrompt = true;
-        if (defaultConfig.getJavaHome() != null) {
-            doPrompt = shell.promptBoolean(String.format("The Java Home '%s' is already set, would you like to override it?", defaultConfig.getJavaHome()), false);
-        }
-        if (doPrompt) {
-            final String javaHome = shell.prompt("Enter the Java home directory or leave blank to use the JAVA_HOME environment variable:");
-            if (javaHome.isEmpty()) {
-                serverConfigurator.setJavaHome(null);
+            deployment.execute();
+            result = ResultMessage.of(Level.SUCCESS, messages.getMessage("deployment.successful", type));
+        } catch (DeploymentFailedException e) {
+            if (e.getCause() != null) {
+                result = ResultMessage.of(Level.ERROR, e.getLocalizedMessage() + ": " + e.getCause()
+                        .getLocalizedMessage());
             } else {
-                serverConfigurator.setJavaHome(javaHome);
+                result = ResultMessage.of(Level.ERROR, e.getLocalizedMessage());
             }
-        }
-
-        // Prompt the user for the version
-        doPrompt = true;
-        if (defaultConfig.getVersion() != null) {
-            doPrompt = shell.promptBoolean(String.format("A default version of %s is already set, would you like to override it?",
-                    defaultConfig.getVersion()), false);
-        }
-        // TODO fix the version and download
-        final Version version;
-        if (doPrompt) {
-            version = shell.promptChoiceTyped("Choose default JBoss AS version:", versions.getVersions());
-        } else {
-            version = versions.defaultVersion();
-        }
-        serverConfigurator.setVersion(version);
-
-        // Prompt for a path or download
-        final String result = shell.prompt("Enter path for JBoss AS or leave blank to download:");
-        final File jbossHome;
-        if (result.isEmpty()) {
-            jbossHome = downloadAndInstall(serverConfigurator.getProjectTarget(), version);
-            serverConfigurator.setJbossHome(null);
-        } else {
-            jbossHome = new File(result);
-            serverConfigurator.setJbossHome(jbossHome);
-        }
-
-        // Should never be null, but let's be careful
-        if (jbossHome == null) {
-            ShellMessages.error(shell, "The JBoss Home was found to be null, something is broken.");
-            return false;
-        }
-        serverConfigurator.writeConfiguration();
-        return true;
-    }
-
-    // TODO version *may* not be necessary
-    protected File downloadAndInstall(final File baseDir, final Version version) {
-        if (shell.promptBoolean(String.format("You are about to download JBoss AS %s to '%s' which could take a while. Would you like to continue?", version, baseDir))) {
-            wait.start(String.format("Downloading JBoss AS %s.", version));
-            try {
-                final List<DependencyResource> asArchive = dependencyResolver.resolveArtifacts(version.getDependency());
-                if (asArchive.isEmpty()) {
-                    throw new IllegalStateException(String.format("Could not find artifact: %s", version.getDependency()));
-                }
-                final DependencyResource zipFile = asArchive.get(0);
-                return extract(zipFile, baseDir);
-            } finally {
-                wait.stop();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Extracts the data from the downloaded zip file.
-     *
-     * @param zipFile the zip file to extract
-     * @param target  the directory the data should be extracted to
-     */
-    private File extract(final DependencyResource zipFile, final File target) {
-        File result = target;
-        final byte buff[] = new byte[1024];
-        ZipFile file = null;
-        try {
-            file = new ZipFile(zipFile.getFullyQualifiedName());
-            final Enumeration<ZipArchiveEntry> entries = file.getEntries();
-            boolean firstEntry = true;
-            while (entries.hasMoreElements()) {
-                final ZipArchiveEntry entry = entries.nextElement();
-                // Create the extraction target
-                final File extractTarget = new File(target, entry.getName());
-                // First entry should be a the base directory
-                if (firstEntry) {
-                    firstEntry = false;
-                    // Confirm override on the extraction target only once
-                    if (extractTarget.exists()) {
-                        if (shell.promptBoolean(String.format("The target (%s) already exists, would you like to replace the directory?", extractTarget), true)) {
-                            Files.deleteRecursively(extractTarget);
-                        } else {
-                            result = null;
-                            break;
-                        }
-                    }
-                    result = extractTarget;
-                }
-                if (entry.isDirectory()) {
-                    extractTarget.mkdirs();
-                } else {
-                    final File parent = new File(extractTarget.getParent());
-                    parent.mkdirs();
-                    final BufferedInputStream in = new BufferedInputStream(file.getInputStream(entry));
-                    try {
-                        final BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(extractTarget));
-                        try {
-                            int read;
-                            while ((read = in.read(buff)) != -1) {
-                                out.write(buff, 0, read);
-                            }
-                        } finally {
-                            Streams.safeClose(out);
-                        }
-                    } finally {
-                        Streams.safeClose(in);
-                    }
-                    // Set the file permissions
-                    if (entry.getUnixMode() > 0) {
-                        setPermissions(extractTarget, FilePermissions.of(entry.getUnixMode()));
-                    }
-                }
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException(String.format("Error extracting '%s'", (file == null ? "null file" : file)), e);
-        } finally {
-            ZipFile.closeQuietly(file);
-            // Streams.safeClose(file);
         }
         return result;
     }
 
-    private static void setPermissions(final File file, final FilePermissions permissions) {
-        file.setExecutable(permissions.owner().canExecute(), !(permissions.group().canExecute() && permissions.pub().canExecute()));
-        file.setReadable(permissions.owner().canWrite(), !(permissions.group().canWrite() && permissions.pub().canWrite()));
-        file.setWritable(permissions.owner().canWrite(), !(permissions.group().canWrite() && permissions.pub().canWrite()));
+    private ModelControllerClient getClient() throws UnknownHostException {
+        final ModelControllerClient client;
+        if (serverController.hasClient()) {
+            client = serverController.getClient();
+        } else {
+            client = ModelControllerClient.Factory
+                    .create(configuration.getHostname(), configuration.getPort(), callbackHandler);
+            serverController.setClient(client);
+        }
+        return client;
     }
 }
