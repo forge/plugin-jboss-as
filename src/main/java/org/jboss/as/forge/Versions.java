@@ -23,13 +23,10 @@
 package org.jboss.as.forge;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.TreeMap;
 
+import org.jboss.as.forge.util.Messages;
 import org.jboss.forge.project.dependencies.Dependency;
 import org.jboss.forge.project.dependencies.DependencyBuilder;
 import org.jboss.forge.shell.project.ProjectScoped;
@@ -50,34 +47,31 @@ public class Versions {
             DependencyBuilder.create(BASE).setVersion("7.1.1.Final"),
     };
 
-    private final Map<String, Version> allVersions;
-    private final Set<Version> snapshotVersions;
-    private final TreeSet<Version> versions;
+    private final TreeMap<String, Version> versions;
     private final Version defaultVersion;
 
+    private final Messages messages = Messages.INSTANCE;
+
     public Versions() {
-        allVersions = new HashMap<String, Version>();
-        snapshotVersions = Collections.emptySet();
-        versions = new TreeSet<Version>();
+        versions = new TreeMap<String, Version>();
         for (Dependency dependency : VERSIONS) {
             final String stringVersion = dependency.getVersion();
             final String archiveDir = String.format("jboss-as-%s", stringVersion);
             final Version version = Version.of(dependency, archiveDir, stringVersion.startsWith("7.0"));
-            versions.add(version);
-            allVersions.put(version.toString(), version);
+            versions.put(version.toString(), version);
         }
-        defaultVersion = versions.last();
+        defaultVersion = versions.lastEntry().getValue();
     }
 
     public boolean isValidVersion(final String version) {
-        return allVersions.containsKey(version);
+        return versions.containsKey(version);
     }
 
     public Version fromString(final String version) {
-        if (allVersions.containsKey(version)) {
-            return allVersions.get(version);
+        if (versions.containsKey(version)) {
+            return versions.get(version);
         }
-        throw new IllegalArgumentException(String.format("Invalid version: %s", version));
+        throw new IllegalArgumentException(messages.getMessage("version.invalid", version, versions.values()));
     }
 
     public Version defaultVersion() {
@@ -85,16 +79,6 @@ public class Versions {
     }
 
     public List<Version> getVersions() {
-        return new ArrayList<Version>(versions);
-    }
-
-    public List<Version> getSnapshotVersions() {
-        return new ArrayList<Version>(snapshotVersions);
-    }
-
-    public List<Version> getAllVersions() {
-        final List<Version> result = new ArrayList<Version>(allVersions.values());
-        Collections.sort(result);
-        return result;
+        return new ArrayList<Version>(versions.values());
     }
 }

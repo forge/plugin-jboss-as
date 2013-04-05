@@ -24,105 +24,85 @@ package org.jboss.as.forge.server;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import javax.security.auth.callback.CallbackHandler;
 
 import org.jboss.as.controller.client.ModelControllerClient;
-import org.jboss.as.forge.ServerConfiguration;
 import org.jboss.as.forge.util.Files;
 import org.jboss.as.forge.util.Streams;
 import org.jboss.dmr.ModelNode;
-import org.jboss.forge.shell.ShellPrintWriter;
 
 /**
  * A standalone server.
  *
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
  */
-public final class StandaloneServer extends Server {
+final class StandaloneServer extends Server {
 
     private static final String CONFIG_PATH = "/standalone/configuration/";
-    private static final ModelNode READ_STATE_OP = Operations.createReadAttributeOperation(Operations.SERVER_STATE);
+    private static final String STARTING = "STARTING";
+    private static final String STOPPING = "STOPPING";
 
-    private boolean isStarted;
+    private final File jbossHome;
+    private final CallbackHandler callbackHandler;
+    private final File modulesDir;
+    private final File bundlesDir;
+    private final InetAddress hostAddress;
+    private final String[] jvmArgs;
+    private final String javaHome;
+    private final int port;
+    private final String serverConfig;
+    private final boolean requiresLogModule;
+    private boolean isRunning;
     private ModelControllerClient client;
 
-    /**
-     * Creates a new standalone server.
-     *
-     * @param out the shell to write console output to
-     */
-    public StandaloneServer(final ShellPrintWriter out) {
-        super(out, "JBAS015950");
-        isStarted = false;
+    StandaloneServer(final OutputStream out, final File jbossHome, final CallbackHandler callbackHandler, final File modulesDir,
+                     final File bundlesDir, final InetAddress hostAddress, final String[] jvmArgs,
+                     final String javaHome, final int port, final String serverConfig, final boolean requiresLogModule) {
+        super(out);
+        this.jbossHome = jbossHome;
+        this.callbackHandler = callbackHandler;
+        this.modulesDir = modulesDir;
+        this.bundlesDir = bundlesDir;
+        this.hostAddress = hostAddress;
+        this.jvmArgs = jvmArgs;
+        this.javaHome = javaHome;
+        this.port = port;
+        this.serverConfig = serverConfig;
+        this.requiresLogModule = requiresLogModule;
+        isRunning = false;
     }
 
     @Override
-    protected void init(final ServerConfiguration serverConfiguration) throws IOException {
-        client = ModelControllerClient.Factory.create(serverConfiguration.getHostname(), serverConfiguration.getPort(), serverConfiguration.getCallbackHandler());
+    protected void init() throws IOException {
+        client = ModelControllerClient.Factory.create(hostAddress, port, callbackHandler);
     }
 
     @Override
-    protected void shutdownServer() {
+    protected void stopServer() {
         try {
             if (client != null) {
                 try {
-                    client.execute(Operations.createOperation(Operations.SHUTDOWN));
+                    client.execute(ServerOperations.SHUTDOWN_OP);
                 } catch (IOException e) {
                     // no-op
                 } finally {
                     Streams.safeClose(client);
                     client = null;
                 }
-                try {
-                    getConsole().awaitShutdown(5L);
-                } catch (InterruptedException ignore) {
-                    // no-op
-                }
             }
         } finally {
-            isStarted = false;
+            isRunning = false;
         }
     }
 
     @Override
-    public State getState() {
-        State result = State.UNKNOWN;
-        if (client == null) {
-            result = State.SHUTDOWN;
-        } else {
-            try {
-                final ModelNode response = client.execute(READ_STATE_OP);
-                if (Operations.successful(response)) {
-                    result = State.fromModel(Operations.getResult(response));
-                }
-            } catch (IOException ignore) {
-                result = State.UNKNOWN;
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public synchronized boolean isStarted() {
-        if (isStarted) {
-            return isStarted;
-        }
-        if (client == null) {
-            isStarted = false;
-        } else {
-            try {
-                ModelNode rsp = client.execute(READ_STATE_OP);
-                if (Operations.successful(rsp)) {
-                    final State currentState = State.fromModel(Operations.getResult(rsp));
-                    isStarted = currentState == State.RUNNING;
-                }
-            } catch (Throwable ignore) {
-                isStarted = false;
-            }
-        }
-        return isStarted;
+    public synchronized boolean isRunning() {
+        return isRunning;
     }
 
     @Override
@@ -131,18 +111,11 @@ public final class StandaloneServer extends Server {
     }
 
     @Override
-    protected List<String> createLaunchCommand(final ServerConfiguration serverConfiguration) {
-        final File jbossHome = serverConfiguration.getJbossHome();
-        final String javaHome = serverConfiguration.getJavaHome();
+    protected List<String> createLaunchCommand() {
         final File modulesJar = new File(Files.createPath(jbossHome.getAbsolutePath(), "jboss-modules.jar"));
         if (!modulesJar.exists())
             throw new IllegalStateException("Cannot find: " + modulesJar);
-        String javaExec;
-        if (javaHome == null) {
-            javaExec = "java";
-        } else {
-            javaExec = Files.createPath(javaHome, "bin", "java");
-        }
+        String javaExec = (javaHome == null ? "java" : Files.createPath(javaHome, "bin", "java"));
         if (javaExec.contains(" ")) {
             javaExec = "\"" + javaExec + "\"";
         }
@@ -150,31 +123,50 @@ public final class StandaloneServer extends Server {
         // Create the commands
         final List<String> cmd = new ArrayList<String>();
         cmd.add(javaExec);
-        if (serverConfiguration.getJvmArgs() != null) {
-            Collections.addAll(cmd, serverConfiguration.getJvmArgs());
+        if (jvmArgs != null) {
+            Collections.addAll(cmd, jvmArgs);
         }
 
         cmd.add("-Djboss.home.dir=" + jbossHome);
         cmd.add("-Dorg.jboss.boot.log.file=" + jbossHome + "/standalone/log/boot.log");
         cmd.add("-Dlogging.configuration=file:" + jbossHome + CONFIG_PATH + "logging.properties");
-        cmd.add("-Djboss.modules.dir=" + serverConfiguration.getModulesDir().getAbsolutePath());
-        cmd.add("-Djboss.bundles.dir=" + serverConfiguration.getBundlesDir().getAbsolutePath());
+        cmd.add("-Djboss.modules.dir=" + modulesDir.getAbsolutePath());
+        cmd.add("-Djboss.bundles.dir=" + bundlesDir.getAbsolutePath());
         cmd.add("-jar");
         cmd.add(modulesJar.getAbsolutePath());
         cmd.add("-mp");
-        cmd.add(serverConfiguration.getModulesDir().getAbsolutePath());
-        if (serverConfiguration.getVersion().requiresLogModule()) {
+        cmd.add(modulesDir.getAbsolutePath());
+        if (requiresLogModule) {
             cmd.add("-logmodule");
             cmd.add("org.jboss.logmanager");
         }
         cmd.add("-jaxpmodule");
         cmd.add("javax.xml.jaxp-provider");
         cmd.add("org.jboss.as.standalone");
-        if (serverConfiguration.getServerConfigFile() != null) {
+        if (serverConfig != null) {
             cmd.add("-server-config");
-            cmd.add(serverConfiguration.getServerConfigFile());
+            cmd.add(serverConfig);
         }
         return cmd;
+    }
+
+    @Override
+    protected long checkServerState() {
+        if (client == null) {
+            isRunning = false;
+            return 0;
+        } else {
+            final long start = System.currentTimeMillis();
+            try {
+                final ModelNode result = client.execute(ServerOperations.READ_STATE_OP);
+                isRunning = ServerOperations.isSuccessfulOutcome(result) && !STARTING.equals(ServerOperations.readResultAsString(result)) &&
+                        !STOPPING.equals(ServerOperations.readResultAsString(result));
+            } catch (Throwable ignore) {
+                isRunning = false;
+            }
+            final long end = System.currentTimeMillis();
+            return (end - start);
+        }
     }
 
 }

@@ -19,7 +19,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.jboss.as.forge.server;
+package org.jboss.as.forge;
 
 import java.io.IOException;
 import javax.inject.Inject;
@@ -31,6 +31,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.sasl.RealmCallback;
 import javax.security.sasl.RealmChoiceCallback;
 
+import org.jboss.as.forge.util.Messages;
 import org.jboss.forge.shell.Shell;
 import org.jboss.forge.shell.project.ProjectScoped;
 
@@ -47,18 +48,10 @@ public class ClientCallbackHandler implements CallbackHandler {
     private String username;
     private char[] password;
 
+    private final Messages messages = Messages.INSTANCE;
+
     @Inject
     private Shell shell;
-
-    public ClientCallbackHandler() {
-        this.username = null;
-        this.password = null;
-    }
-
-    public ClientCallbackHandler(final String username, final char[] password) {
-        this.username = username;
-        this.password = password;
-    }
 
     @Override
     public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
@@ -74,20 +67,22 @@ public class ClientCallbackHandler implements CallbackHandler {
                 String defaultText = rcb.getDefaultText();
                 rcb.setText(defaultText); // For now just use the realm suggested.
 
-                shell.println(String.format("Authenticating against security realm: %s", defaultText));
+                shell.println(messages.getMessage("prompt.security.realm", defaultText));
             } else if (current instanceof RealmChoiceCallback) {
-                throw new UnsupportedCallbackException(current, "Realm choice not currently supported.");
+                throw new UnsupportedCallbackException(current, messages.getMessage("security.realm.unsupported"));
             } else if (current instanceof NameCallback) {
                 NameCallback ncb = (NameCallback) current;
-                // TODO using a secret should be temporary at best for the user name. The issues is any other prompt blocks as the ShellImpl blocks on an executionLock.
+                // Use a secret prompt as a normal prompt blocks the input on a lock,
+                // see org.jboss.forge.shell.ShellImpl#promptWithCompleter(String message, final Completer tempCompleter)
+                // for more details.
                 if (username == null)
-                    username = shell.promptSecret("Username:");
+                    username = shell.promptSecret(messages.getMessage("prompt.username"));
 
                 ncb.setName(username);
             } else if (current instanceof PasswordCallback) {
                 PasswordCallback pcb = (PasswordCallback) current;
                 if (password == null)
-                    password = shell.promptSecret("Password:").toCharArray();
+                    password = shell.promptSecret(messages.getMessage("prompt.password")).toCharArray();
 
                 pcb.setPassword(password);
             } else {
