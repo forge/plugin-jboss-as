@@ -27,6 +27,8 @@ import java.io.FileFilter;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Collections;
+import java.util.List;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import javax.security.auth.callback.CallbackHandler;
@@ -46,6 +48,7 @@ import org.jboss.as.forge.server.deployment.Deployment.Type;
 import org.jboss.as.forge.server.deployment.DeploymentFailedException;
 import org.jboss.as.forge.server.deployment.standalone.StandaloneDeployment;
 import org.jboss.as.forge.util.Messages;
+import org.jboss.as.forge.util.Streams;
 import org.jboss.dmr.ModelNode;
 import org.jboss.forge.project.facets.BaseFacet;
 import org.jboss.forge.project.facets.PackagingFacet;
@@ -69,6 +72,8 @@ class AS7ServerFacet extends BaseFacet {
 
     @Inject
     private ServerController serverController;
+
+    private ServerConsoleWrapper consoleOut;
 
     @Override
     public boolean install() {
@@ -105,6 +110,11 @@ class AS7ServerFacet extends BaseFacet {
             serverController.closeClient();
         }
         return result;
+    }
+
+    public List<String> readConsoleOutput(final int lines) throws IOException {
+        return consoleOut == null ? Collections.<String>emptyList() :
+                (lines > 0 ? consoleOut.readLines(lines) : consoleOut.readAllLines());
     }
 
     public ResultMessage deploy(final String path, final boolean force) throws IOException, DeploymentFailedException {
@@ -148,6 +158,9 @@ class AS7ServerFacet extends BaseFacet {
         if ((serverController.hasServer() && serverController.getServer().isRunning()) || getState().isRunningState()) {
             result = ResultMessage.of(Level.ERROR, messages.getMessage("server.already.running"));
         } else {
+            // Clean-up possible old console output
+            closeConsoleOutput();
+            consoleOut = new ServerConsoleWrapper();
             final File targetHome = jbossHome == null ? configuration.getJbossHome() : jbossHome;
             final String jreHome = javaHome == null ? configuration.getJavaHome() : javaHome;
             final Server server = ServerBuilder.of(callbackHandler, targetHome, version.requiresLogModule())
@@ -156,6 +169,7 @@ class AS7ServerFacet extends BaseFacet {
                     .setJavaHome(jreHome)
                     .setJvmArgs(configuration.getJvmArgs())
                     .setModulesDir(configuration.getModulesDir())
+                    .setOutputStream(consoleOut)
                     .setPort(configuration.getPort())
                     .setServerConfig(configuration.getServerConfigFile())
                     .build();
@@ -173,6 +187,9 @@ class AS7ServerFacet extends BaseFacet {
             } catch (Exception e) {
                 result = ResultMessage.of(Level.ERROR, messages.getMessage("server.start.failed.exception", configuration
                         .getVersion(), e.getLocalizedMessage()));
+            }
+            if (result.getLevel() == Level.ERROR) {
+                closeConsoleOutput();
             }
         }
         return result;
@@ -220,6 +237,7 @@ class AS7ServerFacet extends BaseFacet {
     protected void shutdownServer(@Observes final PreShutdown event) {
         serverController.shutdownServer();
         serverController.closeClient();
+        closeConsoleOutput();
     }
 
     protected boolean isValidJBossHome(final File jbossHome) {
@@ -277,5 +295,11 @@ class AS7ServerFacet extends BaseFacet {
             serverController.setClient(client);
         }
         return client;
+    }
+
+    private void closeConsoleOutput() {
+        Streams.safeFlush(consoleOut);
+        Streams.safeClose(consoleOut);
+        consoleOut = null;
     }
 }

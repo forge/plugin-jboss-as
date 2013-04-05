@@ -23,6 +23,8 @@ package org.jboss.as.forge;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.List;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
@@ -31,6 +33,7 @@ import org.jboss.as.forge.ResultMessage.Level;
 import org.jboss.as.forge.server.Server.State;
 import org.jboss.as.forge.util.Files;
 import org.jboss.as.forge.util.Messages;
+import org.jboss.as.forge.util.Streams;
 import org.jboss.forge.project.Project;
 import org.jboss.forge.project.dependencies.DependencyResolver;
 import org.jboss.forge.project.facets.DependencyFacet;
@@ -166,6 +169,35 @@ public class AS7Plugin implements Plugin {
             ShellMessages.error(out, messages.getMessage("port.invalid", p));
         }
         checkResult(out, project.getFacet(AS7ServerFacet.class).override(hostname, p), false);
+    }
+
+    @Command(help = "Prints the console output, if any, from the server started via the plugin.",
+            value = "print-console")
+    public void printConsole(@SuppressWarnings("unused") final PipeOut out,
+                             @Option(name = "lines", help = "The number of lines to print", defaultValue = "0") final int lines) throws Exception {
+        // Get the facet
+        final AS7ServerFacet serverFacet = project.getFacet(AS7ServerFacet.class);
+        try {
+            final List<String> consoleLines = serverFacet.readConsoleOutput(lines);
+            if (consoleLines.isEmpty()) {
+                ShellMessages.info(out, messages.getMessage("print.console.no-lines"));
+            } else {
+                for (String line : consoleLines) {
+                    out.println(line);
+                }
+            }
+        } catch (IOException e) {
+            ShellMessages.error(out, messages.getMessage("print.console.error", e.getLocalizedMessage()));
+            final StringWriter stackTrace = new StringWriter();
+            final PrintWriter writer = new PrintWriter(stackTrace);
+            try {
+                e.printStackTrace(writer);
+                shell.printlnVerbose(stackTrace.toString());
+            } finally {
+                Streams.safeClose(stackTrace);
+                Streams.safeClose(writer);
+            }
+        }
     }
 
     @Command

@@ -23,6 +23,7 @@
 package org.jboss.as.forge.util;
 
 import java.io.Closeable;
+import java.io.Flushable;
 import java.util.zip.ZipFile;
 
 /**
@@ -44,6 +45,15 @@ public class Streams {
     public static void safeClose(final ZipFile file) {
         if (file != null) try {
             file.close();
+        } catch (Exception e) {
+            // no-op
+        }
+    }
+
+
+    public static void safeFlush(final Flushable flushable) {
+        if (flushable != null) try {
+            flushable.flush();
         } catch (Exception e) {
             // no-op
         }
