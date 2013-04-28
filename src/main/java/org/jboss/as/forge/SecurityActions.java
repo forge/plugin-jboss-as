@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2012, Red Hat, Inc., and individual contributors
+ * Copyright 2013, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -24,6 +24,9 @@ package org.jboss.as.forge;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.concurrent.TimeUnit;
+
+import org.jboss.as.forge.server.Server;
 
 /**
  * Security actions to perform possibly privileged operations. No methods in this class are to be made public under any
@@ -32,6 +35,7 @@ import java.security.PrivilegedAction;
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
  */
 final class SecurityActions {
+
     static void addShutdownHook(final Thread hook) {
         if (System.getSecurityManager() == null) {
             Runtime.getRuntime().addShutdownHook(hook);
@@ -43,6 +47,30 @@ final class SecurityActions {
                 }
             });
         }
+    }
+
+    static String getProperty(final String key) {
+        if (System.getSecurityManager() == null) {
+            return System.getProperty(key);
+        }
+        return AccessController.doPrivileged(new PrivilegedAction<String>() {
+            @Override
+            public String run() {
+                return System.getProperty(key);
+            }
+        });
+    }
+
+    static String getProperty(final String key, final String defaultValue) {
+        if (System.getSecurityManager() == null) {
+            return System.getProperty(key, defaultValue);
+        }
+        return AccessController.doPrivileged(new PrivilegedAction<String>() {
+            @Override
+            public String run() {
+                return System.getProperty(key, defaultValue);
+            }
+        });
     }
 
     static String getEnvironmentVariable(final String key) {

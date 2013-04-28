@@ -32,6 +32,18 @@ import java.security.PrivilegedAction;
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
  */
 final class SecurityActions {
+
+    static void registerShutdown(final Server server) {
+        final Thread hook = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                server.stop();
+            }
+        });
+        hook.setDaemon(true);
+        addShutdownHook(hook);
+    }
+
     static void addShutdownHook(final Thread hook) {
         if (System.getSecurityManager() == null) {
             Runtime.getRuntime().addShutdownHook(hook);

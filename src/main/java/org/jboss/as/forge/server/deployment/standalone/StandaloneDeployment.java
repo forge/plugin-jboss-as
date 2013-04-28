@@ -34,9 +34,10 @@ import org.jboss.as.controller.client.helpers.standalone.ServerDeploymentActionR
 import org.jboss.as.controller.client.helpers.standalone.ServerDeploymentManager;
 import org.jboss.as.controller.client.helpers.standalone.ServerDeploymentPlanResult;
 import org.jboss.as.controller.client.helpers.standalone.ServerUpdateActionResult;
-import org.jboss.as.forge.server.Operations;
+import org.jboss.as.forge.server.ServerOperations;
 import org.jboss.as.forge.server.deployment.Deployment;
 import org.jboss.as.forge.server.deployment.DeploymentFailedException;
+import org.jboss.as.forge.util.Messages;
 import org.jboss.dmr.ModelNode;
 
 /**
@@ -50,6 +51,7 @@ public class StandaloneDeployment implements Deployment {
     private final ModelControllerClient client;
     private final String name;
     private final Type type;
+    private final Messages messages = Messages.INSTANCE;
 
     /**
      * Creates a new deployment.
@@ -131,11 +133,11 @@ public class StandaloneDeployment implements Deployment {
                         final ServerUpdateActionResult.Result result = actionResult.getResult();
                         switch (result) {
                             case FAILED:
-                                throw new DeploymentFailedException("Deployment failed.", actionResult.getDeploymentException());
+                                throw new DeploymentFailedException(messages.getMessage("deployment.failed"), actionResult.getDeploymentException());
                             case NOT_EXECUTED:
-                                throw new DeploymentFailedException("Deployment not executed.", actionResult.getDeploymentException());
+                                throw new DeploymentFailedException(messages.getMessage("deployment.not.executed"), actionResult.getDeploymentException());
                             case ROLLED_BACK:
-                                throw new DeploymentFailedException("Deployment failed and was rolled back.", actionResult.getDeploymentException());
+                                throw new DeploymentFailedException(messages.getMessage("deployment.failed.rolled-back"), actionResult.getDeploymentException());
                             case CONFIGURATION_MODIFIED_REQUIRES_RESTART:
                                 resultStatus = Status.REQUIRES_RESTART;
                                 break;
@@ -146,7 +148,7 @@ public class StandaloneDeployment implements Deployment {
         } catch (DeploymentFailedException e) {
             throw e;
         } catch (Exception e) {
-            throw DeploymentFailedException.of(e, "Error executing %s", type);
+            throw new DeploymentFailedException(messages.getMessage("deployment.error.executing", type), e);
         }
         return resultStatus;
     }
@@ -158,24 +160,24 @@ public class StandaloneDeployment implements Deployment {
 
     private boolean exists() {
         // CLI :read-children-names(child-type=deployment)
-        final ModelNode op = Operations.createListDeploymentsOperation();
+        final ModelNode op = ServerOperations.createListDeploymentsOperation();
         final ModelNode result;
         try {
             result = client.execute(op);
             final String deploymentName = name;
             // Check to make sure there is an outcome
-            if (Operations.successful(result)) {
-                final List<ModelNode> deployments = Operations.getResult(result).asList();
+            if (ServerOperations.isSuccessfulOutcome(result)) {
+                final List<ModelNode> deployments = ServerOperations.readResult(result).asList();
                 for (ModelNode n : deployments) {
                     if (n.asString().equals(deploymentName)) {
                         return true;
                     }
                 }
             } else {
-                throw new IllegalStateException(Operations.getFailureDescription(result));
+                throw new IllegalStateException(ServerOperations.getFailureDescriptionAsString(result));
             }
         } catch (IOException e) {
-            throw new IllegalStateException(String.format("Could not execute operation '%s'", op), e);
+            throw new IllegalStateException(messages.getMessage("op.failure", op), e);
         }
         return false;
     }

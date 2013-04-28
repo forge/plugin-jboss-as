@@ -22,23 +22,16 @@
 
 package org.jboss.as.forge.server;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
-import org.jboss.as.cli.CliInitializationException;
-import org.jboss.as.cli.CommandContext;
-import org.jboss.as.cli.CommandContextFactory;
-import org.jboss.as.cli.CommandFormatException;
 import org.jboss.as.controller.client.ModelControllerClient;
-import org.jboss.as.forge.ServerConfiguration;
+import org.jboss.as.forge.util.Messages;
 import org.jboss.dmr.ModelNode;
-import org.jboss.forge.shell.ShellPrintWriter;
 
 /**
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
@@ -48,9 +41,9 @@ public abstract class Server {
     public static enum State {
         UNKNOWN("unknown"),
         STARTING("starting"),
-        RUNNING("running"),
-        RELOAD_REQUIRED("reload-required"),
-        RESTART_REQUIRED("restart-required"),
+        RUNNING("running", true),
+        RELOAD_REQUIRED("reload-required", true),
+        RESTART_REQUIRED("restart-required", true),
         STOPPING("stopping"),
         SHUTDOWN("shutdown");
 
@@ -64,9 +57,15 @@ public abstract class Server {
         }
 
         private final String stringForm;
+        private final boolean isRunningState;
 
         private State(final String stringForm) {
+            this(stringForm, false);
+        }
+
+        private State(final String stringForm, final boolean isRunningState) {
             this.stringForm = stringForm;
+            this.isRunningState = isRunningState;
         }
 
         public static State fromString(final String state) {
@@ -76,8 +75,17 @@ public abstract class Server {
             return UNKNOWN;
         }
 
-        static State fromModel(final ModelNode state) {
+        public static State fromModel(final ModelNode state) {
             return fromString(state.asString());
+        }
+
+        /**
+         * Indicates whether the state is a running state.
+         *
+         * @return {@code true} if this is a running state, otherwise {@code false}
+         */
+        public boolean isRunningState() {
+            return isRunningState;
         }
 
         @Override
@@ -87,30 +95,13 @@ public abstract class Server {
 
     }
 
-
     private Process process;
-    private ConsoleConsumer console;
-    private CommandContext commandContext;
-    private final ShellPrintWriter out;
-    private final String shutdownId;
+    private final OutputStream out;
 
-    protected Server(final ShellPrintWriter out) {
+    protected final Messages messages = Messages.INSTANCE;
+
+    protected Server(final OutputStream out) {
         this.out = out;
-        shutdownId = null;
-    }
-
-    protected Server(final ShellPrintWriter out, final String shutdownId) {
-        this.out = out;
-        this.shutdownId = shutdownId;
-    }
-
-    /**
-     * The console that is associated with the server.
-     *
-     * @return the console
-     */
-    protected final ConsoleConsumer getConsole() {
-        return console;
     }
 
     /**
@@ -118,24 +109,19 @@ public abstract class Server {
      *
      * @throws java.io.IOException the an error occurs creating the process
      */
-    public synchronized final void start(final ServerConfiguration serverConfiguration) throws IOException {
-        SecurityActions.addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
-                shutdown();
-            }
-        }));
-        final List<String> cmd = createLaunchCommand(serverConfiguration);
+    public synchronized final void start(final long timeout) throws IOException {
+        SecurityActions.registerShutdown(this);
+        final List<String> cmd = createLaunchCommand();
         final ProcessBuilder processBuilder = new ProcessBuilder(cmd);
         processBuilder.redirectErrorStream(true);
         process = processBuilder.start();
-        console = createConsole(process.getInputStream());
-        long timeout = serverConfiguration.getStartupTimeout() * 1000;
+        startConsoleConsumer(process.getInputStream());
+        long startTimeout = timeout * 1000;
         boolean serverAvailable = false;
         long sleep = 50;
-        init(serverConfiguration);
-        while (timeout > 0 && !serverAvailable) {
-            serverAvailable = isStarted();
+        init();
+        while (startTimeout > 0 && !serverAvailable) {
+            serverAvailable = isRunning();
             if (!serverAvailable) {
                 if (processHasDied(process))
                     break;
@@ -145,38 +131,13 @@ public abstract class Server {
                     serverAvailable = false;
                     break;
                 }
-                timeout -= sleep;
+                startTimeout -= sleep + checkServerState();
                 sleep = Math.max(sleep / 2, 100);
             }
         }
         if (!serverAvailable) {
             destroyProcess();
-            throw new IllegalStateException(String.format("Managed server was not started within [%d] s", serverConfiguration.getStartupTimeout()));
-        }
-    }
-
-    /**
-     * Stops the server.
-     */
-    public synchronized final void shutdown() {
-        try {
-            shutdownServer();
-            try {
-                if (commandContext != null) {
-                    commandContext.terminateSession();
-                }
-            } catch (Exception ignore) {
-                // no-op
-            }
-        } finally {
-            if (process != null) {
-                process.destroy();
-                try {
-                    process.waitFor();
-                } catch (InterruptedException ignore) {
-                    // no-op
-                }
-            }
+            throw new IllegalStateException(messages.getMessage("server.not.started", timeout));
         }
     }
 
@@ -184,30 +145,21 @@ public abstract class Server {
      * Invokes any optional initialization that should take place after the process has been launched. Note the server
      * may not be completely started when the method is invoked.
      *
-     * @param serverConfiguration the server configuration
-     *
      * @throws java.io.IOException if an IO error occurs
      */
-    protected abstract void init(final ServerConfiguration serverConfiguration) throws IOException;
+    protected abstract void init() throws IOException;
 
     /**
      * Stops the server before the process is destroyed. A no-op override will just destroy the process.
      */
-    protected abstract void shutdownServer();
-
-    /**
-     * Checks the state of the server.
-     *
-     * @return the state of the server
-     */
-    public abstract State getState();
+    protected abstract void stopServer();
 
     /**
      * Checks the status of the server and returns {@code true} if the server is fully started.
      *
      * @return {@code true} if the server is fully started, otherwise {@code false}
      */
-    public abstract boolean isStarted();
+    public abstract boolean isRunning();
 
     /**
      * Returns the client that used to execute management operations on the server.
@@ -219,41 +171,35 @@ public abstract class Server {
     /**
      * Creates the command to launch the server for the process.
      *
-     * @param serverConfiguration the server configuration
-     *
      * @return the commands used to launch the server
      */
-    protected abstract List<String> createLaunchCommand(final ServerConfiguration serverConfiguration);
+    protected abstract List<String> createLaunchCommand();
 
     /**
-     * Execute a CLI command.
+     * Checks whether the server is running or not. If the server is no longer running the {@link #isRunning()} should
+     * return {@code false}.
      *
-     * @param cmd the command to execute
-     *
-     * @throws java.io.IOException      if an error occurs on the connected client
-     * @throws IllegalArgumentException if the command is invalid or was unsuccessful
+     * @return the approximate time (in milliseconds) the server waited for the client to connect, 0 if {@link
+     *         #isRunning()} is {@code true}
      */
-    public synchronized void executeCliCommand(final String cmd) throws IOException {
-        if (!isStarted()) {
-            throw new IllegalStateException("Cannot execute commands on a server that is not running.");
-        }
-        CommandContext ctx = commandContext;
-        if (ctx == null) {
-            commandContext = ctx = createCommandContext();
-        }
-        final ModelControllerClient client = getClient();
-        final ModelNode op;
-        final ModelNode result;
+    protected abstract long checkServerState();
+
+    /**
+     * Stops the server.
+     */
+    public final synchronized void stop() {
         try {
-            op = ctx.buildRequest(cmd);
-            result = client.execute(op);
-        } catch (CommandFormatException e) {
-            throw new IllegalArgumentException(String.format("Command '%s' is invalid", cmd), e);
+            stopServer();
+        } finally {
+            if (process != null) {
+                process.destroy();
+                try {
+                    process.waitFor();
+                } catch (InterruptedException ignore) {
+                    // no-op
+                }
+            }
         }
-        if (!Operations.successful(result)) {
-            throw new IllegalArgumentException(String.format("Command '%s' was unsuccessful. Reason: %s", cmd, Operations.getFailureDescription(result)));
-        }
-        out.println(result.toString());
     }
 
 
@@ -278,37 +224,11 @@ public abstract class Server {
         }
     }
 
-    /**
-     * Creates the command context and binds the client to the context.
-     * <p/>
-     * If the client is {@code null}, no client is bound to the context.
-     *
-     * @return the command line context
-     *
-     * @throws IllegalStateException if the context fails to initialize
-     */
-    // TODO clean this up, add shutdown hook and don't keep creating a new context
-    public static CommandContext createCommandContext() {
-        final CommandContext commandContext;
-        try {
-            commandContext = CommandContextFactory.getInstance().newCommandContext();
-        } catch (CliInitializationException e) {
-            throw new IllegalStateException("Failed to initialize CLI context", e);
-        }
-        return commandContext;
-    }
-
-    /**
-     * Creates the console.
-     *
-     * @param stream the stream to consume
-     *
-     * @return the console
-     */
-    private ConsoleConsumer createConsole(final InputStream stream) {
+    private ConsoleConsumer startConsoleConsumer(final InputStream stream) {
         final ConsoleConsumer result = new ConsoleConsumer(stream);
         final Thread t = new Thread(result);
         t.setName("AS7-Console");
+        t.setDaemon(true);
         t.start();
         return result;
     }
@@ -318,14 +238,17 @@ public abstract class Server {
      *
      * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
      */
-    final class ConsoleConsumer implements Runnable {
+    /**
+     * Runnable that consumes the output of the process.
+     *
+     * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
+     */
+    class ConsoleConsumer implements Runnable {
 
         private final InputStream in;
-        private final CountDownLatch latch;
 
-        private ConsoleConsumer(final InputStream in) {
+        protected ConsoleConsumer(final InputStream in) {
             this.in = in;
-            latch = new CountDownLatch(1);
         }
 
         @Override
@@ -335,18 +258,10 @@ public abstract class Server {
                 byte[] buf = new byte[512];
                 int num;
                 while ((num = in.read(buf)) != -1) {
-                    // Swallow console output
-                    out.write(buf, 0, num);
-                    if (shutdownId != null && new String(buf).contains(shutdownId))
-                        latch.countDown();
+                    if (out != null) out.write(buf, 0, num);
                 }
             } catch (IOException ignore) {
             }
-        }
-
-        void awaitShutdown(final long seconds) throws InterruptedException {
-            if (shutdownId == null) latch.countDown();
-            latch.await(seconds, TimeUnit.SECONDS);
         }
 
     }
