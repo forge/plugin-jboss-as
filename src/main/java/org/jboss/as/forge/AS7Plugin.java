@@ -79,9 +79,6 @@ public class AS7Plugin implements Plugin {
     private Versions versions;
 
     @Inject
-    private ProjectConfiguration configuration;
-
-    @Inject
     private DependencyResolver dependencyResolver;
 
     private final Messages messages = Messages.INSTANCE;
@@ -89,9 +86,13 @@ public class AS7Plugin implements Plugin {
     @SetupCommand
     @SuppressWarnings("unchecked")
     public void setup() {
+        if (!project.hasFacet(AS7ServerFacet.class)) {
+            // Make sure facets are installed
+            install.fire(new InstallFacets(AS7ServerFacet.class));
+        }
         if (promptConfiguration()) {
             // Make sure facets are installed
-            install.fire(new InstallFacets(AS7ServerFacet.class, AS7MavenPluginFacet.class));
+            install.fire(new InstallFacets(AS7MavenPluginFacet.class));
         }
     }
 
@@ -104,6 +105,7 @@ public class AS7Plugin implements Plugin {
                                 @Option(name = "port", flagOnly = true) final boolean port,
                                 @Option(name = "all", shortName = "a", flagOnly = true) final boolean all) {
 
+        final ProjectConfiguration configuration = project.getFacet(AS7ServerFacet.class).getConfiguration();
         if (version || all) out.println(messages.getMessage("version", configuration.getVersion()));
         if (jbossHome || all) out.println(messages.getMessage("home", configuration.getJbossHome()));
         if (javaHome || all) out.println(messages.getMessage("java.home", configuration.getJavaHome()));
@@ -157,6 +159,8 @@ public class AS7Plugin implements Plugin {
                                @Option(name = "hostname", shortName = "h", help = "The host name for the management interface") final String hostname,
                                @Option(name = "port", shortName = "p", defaultValue = "0", help = "The port for the management interface") final int port,
                                @Option(name = "reset", shortName = "r", flagOnly = true, help = "Resets any overrides to the defaults, runs before any other options") final boolean reset) {
+        final AS7ServerFacet serverFacet = project.getFacet(AS7ServerFacet.class);
+        final ProjectConfiguration configuration = serverFacet.getConfiguration();
         if (reset) {
             configuration.resetDefaults();
         }
@@ -168,7 +172,7 @@ public class AS7Plugin implements Plugin {
             p = configuration.getPort();
             ShellMessages.error(out, messages.getMessage("port.invalid", p));
         }
-        checkResult(out, project.getFacet(AS7ServerFacet.class).override(hostname, p), false);
+        checkResult(out, serverFacet.override(hostname, p), false);
     }
 
     @Command(help = "Prints the console output, if any, from the server started via the plugin.",
@@ -211,6 +215,7 @@ public class AS7Plugin implements Plugin {
         final State state = serverFacet.getState();
         // The server must be running
         if (state.isRunningState()) {
+            final ProjectConfiguration configuration = serverFacet.getConfiguration();
             if (hostname != null) {
                 configuration.setHostname(hostname);
             }
@@ -233,6 +238,7 @@ public class AS7Plugin implements Plugin {
         final State state = serverFacet.getState();
         // The server must be running
         if (state.isRunningState()) {
+            final ProjectConfiguration configuration = serverFacet.getConfiguration();
             if (hostname != null) {
                 configuration.setHostname(hostname);
             }
@@ -256,6 +262,7 @@ public class AS7Plugin implements Plugin {
         final State state = serverFacet.getState();
         // The server must be running
         if (state.isRunningState()) {
+            final ProjectConfiguration configuration = serverFacet.getConfiguration();
             if (hostname != null) {
                 configuration.setHostname(hostname);
             }
@@ -273,6 +280,8 @@ public class AS7Plugin implements Plugin {
                       @Option(name = "jboss-home") final Resource<?> jbossHome,
                       @Option(name = "java-home") final String javaHome,
                       @Option(name = "version", completer = VersionCompleter.class) final String version) throws Exception {
+
+        final AS7ServerFacet serverFacet = project.getFacet(AS7ServerFacet.class);
         final File target;
         if (jbossHome != null) {
             // Create the file
@@ -284,6 +293,7 @@ public class AS7Plugin implements Plugin {
                 return;
             }
         } else {
+            final ProjectConfiguration configuration = serverFacet.getConfiguration();
             target = configuration.getJbossHome();
             if (target == null) {
                 ShellMessages.error(out, messages.getMessage("start.home.invalid"));
@@ -306,7 +316,6 @@ public class AS7Plugin implements Plugin {
             return;
         }
 
-        final AS7ServerFacet serverFacet = project.getFacet(AS7ServerFacet.class);
         // Make sure the server is installed
         if (!serverFacet.isValidJBossHome(target)) {
             // Offer to download if the install does not exist
@@ -355,6 +364,8 @@ public class AS7Plugin implements Plugin {
      * @return {@code true} if configured correct, otherwise {@code false}
      */
     private boolean promptConfiguration() {
+        final AS7ServerFacet serverFacet = project.getFacet(AS7ServerFacet.class);
+        final ProjectConfiguration configuration = serverFacet.getConfiguration();
         // Set the JAVA_HOME, null means use JAVA_HOME
         final String javaHome = shell.prompt(messages.getMessage("prompt.java.home"));
         if (javaHome.isEmpty()) {

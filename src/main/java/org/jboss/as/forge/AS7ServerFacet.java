@@ -61,6 +61,7 @@ import org.jboss.forge.shell.plugins.RequiresFacet;
  */
 @RequiresFacet(PackagingFacet.class)
 class AS7ServerFacet extends BaseFacet {
+    static final String PROJECT_KEY = "installed";
 
     @Inject
     private ProjectConfiguration configuration;
@@ -77,8 +78,8 @@ class AS7ServerFacet extends BaseFacet {
 
     @Override
     public boolean install() {
-        // TODO (jrp) do something to install it
-        return true;
+        configuration.setProperty(PROJECT_KEY, "true");
+        return configuration.hasProperty(PROJECT_KEY);
     }
 
     @Override
@@ -89,7 +90,11 @@ class AS7ServerFacet extends BaseFacet {
 
     @Override
     public boolean isInstalled() {
-        return configuration.getJbossHome() != null;
+        return configuration.hasProperty(PROJECT_KEY);
+    }
+
+    ProjectConfiguration getConfiguration() {
+        return configuration;
     }
 
     public ResultMessage override(final String hostname, final int port) {

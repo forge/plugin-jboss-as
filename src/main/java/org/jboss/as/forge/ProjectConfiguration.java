@@ -23,22 +23,19 @@
 package org.jboss.as.forge;
 
 import java.io.File;
-import javax.annotation.PostConstruct;
+import javax.enterprise.context.Dependent;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import javax.security.auth.callback.CallbackHandler;
 
 import org.jboss.as.forge.util.Files;
 import org.jboss.forge.env.Configuration;
 import org.jboss.forge.env.ConfigurationScope;
-import org.jboss.forge.project.Project;
-import org.jboss.forge.shell.plugins.RequiresProject;
-import org.jboss.forge.shell.project.ProjectScoped;
+import org.jboss.forge.shell.events.ProjectChanged;
 
 /**
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
  */
-@RequiresProject
-@ProjectScoped
+@Dependent
 public class ProjectConfiguration {
 
     private static final String AS7 = "as7";
@@ -96,13 +93,7 @@ public class ProjectConfiguration {
     }
 
     @Inject
-    private Project project;
-
-    @Inject
     private Configuration configuration;
-
-    @Inject
-    private CallbackHandler callbackHandler;
 
     @Inject
     private Versions versions;
@@ -111,10 +102,15 @@ public class ProjectConfiguration {
 
     private int port;
 
-    @PostConstruct
     protected void resetDefaults() {
         hostname = getConfiguration().getString(HOSTNAME, DEFAULT_HOSTNAME);
         port = getConfiguration().getInt(PORT, DEFAULT_PORT);
+    }
+
+    protected void resetDefaults(@Observes final ProjectChanged event) {
+        if (event.getNewProject() != null) {
+            resetDefaults();
+        }
     }
 
     /**
@@ -147,12 +143,12 @@ public class ProjectConfiguration {
     protected void setHostname(final String hostname, final boolean persist) {
         this.hostname = hostname;
         if (persist) {
-            setProperty(HOSTNAME, hostname);
+            setProperty(HOSTNAME, hostname, true);
         }
     }
 
     protected void clearHostname() {
-        setProperty(HOSTNAME, null);
+        setProperty(HOSTNAME, null, true);
         hostname = DEFAULT_HOSTNAME;
     }
 
@@ -174,12 +170,12 @@ public class ProjectConfiguration {
     protected void setPort(final int port, final boolean persist) {
         this.port = port;
         if (persist) {
-            setProperty(PORT, port);
+            setProperty(PORT, port, true);
         }
     }
 
     protected void clearPort() {
-        setProperty(PORT, null);
+        setProperty(PORT, null, true);
         this.port = DEFAULT_PORT;
     }
 
@@ -213,7 +209,7 @@ public class ProjectConfiguration {
     }
 
     protected void setDefaultJbossHomeJbossHome() {
-        setProperty(JBOSS_HOME, JBOSS_HOME_HOLDER);
+        setProperty(JBOSS_HOME, JBOSS_HOME_HOLDER, true);
     }
 
     /**
@@ -243,7 +239,7 @@ public class ProjectConfiguration {
     }
 
     protected void setBundlesDir(final File bundlesDir) {
-        setProperty(BUNDLES_DIR, bundlesDir.getAbsolutePath());
+        setProperty(BUNDLES_DIR, bundlesDir.getAbsolutePath(), true);
     }
 
     /**
@@ -257,7 +253,7 @@ public class ProjectConfiguration {
     }
 
     protected void setJvmArgs(final String[] args) {
-        setProperty(JVM_ARGS, args);
+        setProperty(JVM_ARGS, args, true);
     }
 
     /**
@@ -273,7 +269,7 @@ public class ProjectConfiguration {
     }
 
     protected void setJavaHome(final String javaHome) {
-        setProperty(JAVA_HOME, javaHome);
+        setProperty(JAVA_HOME, javaHome, true);
     }
 
     /**
@@ -286,7 +282,7 @@ public class ProjectConfiguration {
     }
 
     protected void setServerConfigFile(final String path) {
-        setProperty(SERVER_CONFIG_FILE, path);
+        setProperty(SERVER_CONFIG_FILE, path, true);
     }
 
     /**
@@ -301,7 +297,7 @@ public class ProjectConfiguration {
     }
 
     protected void setStartupTimeout(final long timeout) {
-        setProperty(SERVER_STARTUP_TIMEOUT, timeout);
+        setProperty(SERVER_STARTUP_TIMEOUT, timeout, true);
     }
 
     /**
@@ -319,18 +315,42 @@ public class ProjectConfiguration {
     }
 
     public void setVersion(final Version version) {
-        setProperty(JBOSS_AS_VERSION, version.toString());
+        setProperty(JBOSS_AS_VERSION, version.toString(), true);
+    }
+
+    boolean hasProperty(final String key) {
+        final String propertyKey = generateKey(AS7, key);
+        try {
+            return getConfiguration().containsKey(propertyKey);
+        } catch (Exception ignore) {
+        }
+        return false;
+    }
+
+    String getProperty(final String key) {
+        final String propertyKey = generateKey(AS7, key);
+        return getConfiguration().getString(propertyKey);
+    }
+
+    void setProperty(final String key, final String value) {
+        setProperty(key, value, false);
     }
 
     private void setProperty(final String key, final File value) {
-        setProperty(key, (value == null ? null : value.getAbsolutePath()));
+        setProperty(key, (value == null ? null : value.getAbsolutePath()), true);
     }
 
-    private void setProperty(final String key, final Object value) {
-        if (value == null) {
-            getConfiguration().clearProperty(key);
+    private void setProperty(final String key, final Object value, final boolean definedKey) {
+        final String propertyKey;
+        if (definedKey) {
+            propertyKey = key;
         } else {
-            getConfiguration().setProperty(key, value);
+            propertyKey = generateKey(AS7, key);
+        }
+        if (value == null) {
+            getConfiguration().clearProperty(propertyKey);
+        } else {
+            getConfiguration().setProperty(propertyKey, value);
         }
     }
 
