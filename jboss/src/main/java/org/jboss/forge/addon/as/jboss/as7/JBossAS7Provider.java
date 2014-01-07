@@ -16,6 +16,8 @@ import org.jboss.forge.addon.ui.context.UIValidationContext;
 
 /**
  * The application server provider for JBoss AS7
+ * 
+ * @author Jeremie Lagarde
  */
 public class JBossAS7Provider extends AbstractFacet<Project> implements ApplicationServerProvider
 {
@@ -23,42 +25,35 @@ public class JBossAS7Provider extends AbstractFacet<Project> implements Applicat
    @Override
    public boolean install()
    {
-      // TODO Auto-generated method stub
       return true;
    }
 
    @Override
    public boolean isInstalled()
    {
-      // TODO Auto-generated method stub
       return true;
    }
 
    @Override
    public void validate(UIValidationContext context)
    {
-      // TODO Auto-generated method stub
-
    }
 
    @Override
    public String getName()
    {
-      // TODO Auto-generated method stub
-      return "jbossas7";
+      return "JBossAS7";
    }
 
    @Override
    public String getDescription()
    {
-      // TODO Auto-generated method stub
-      return "JBossAS7";
+      return "JBoss AS7";
    }
 
    @Override
    public List<Class<? extends UICommand>> getSetupFlow()
    {
-      // TODO Auto-generated method stub
       return null;
    }
 
