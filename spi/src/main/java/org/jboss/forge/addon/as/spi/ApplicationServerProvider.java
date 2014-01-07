@@ -6,7 +6,10 @@
  */
 package org.jboss.forge.addon.as.spi;
 
+import java.util.List;
+
 import org.jboss.forge.addon.projects.ProjectFacet;
+import org.jboss.forge.addon.ui.UICommand;
 import org.jboss.forge.addon.ui.UIValidator;
 
 /**
@@ -29,5 +32,10 @@ public interface ApplicationServerProvider extends ProjectFacet, UIValidator
     * Ex: JBoss AS7
     */
    String getDescription();
+   
+   /**
+    * Return the {@link List} of {@link UICommands} classes that begins the application server setup of this type, if any.
+    */
+   List<Class<? extends UICommand>> getSetupFlow();   
 
 }

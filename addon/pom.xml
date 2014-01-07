@@ -29,6 +29,12 @@
       <artifactId>as-spi</artifactId>
       <classifier>forge-addon</classifier>
     </dependency>
+    <dependency>
+      <groupId>org.jboss.forge.addon</groupId>
+      <artifactId>as-jboss</artifactId>
+      <classifier>forge-addon</classifier>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
