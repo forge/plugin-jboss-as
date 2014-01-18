@@ -8,9 +8,12 @@ package org.jboss.forge.addon.as.spi;
 
 import java.util.List;
 
+import org.jboss.forge.addon.facets.Facet;
 import org.jboss.forge.addon.projects.ProjectFacet;
-import org.jboss.forge.addon.ui.UICommand;
-import org.jboss.forge.addon.ui.UIValidator;
+import org.jboss.forge.addon.resource.DirectoryResource;
+import org.jboss.forge.addon.ui.command.UICommand;
+import org.jboss.forge.addon.ui.context.UIContext;
+import org.jboss.forge.addon.ui.validate.UIValidator;
 
 /**
  * Provides an implementation of Application Server connector to provide management operations.
@@ -32,10 +35,21 @@ public interface ApplicationServerProvider extends ProjectFacet, UIValidator
     * Ex: JBoss AS7
     */
    String getDescription();
-   
+
    /**
-    * Return the {@link List} of {@link UICommands} classes that begins the application server setup of this type, if any.
+    * Return the {@link List} of {@link UICommands} classes that begins the application server setup of this type, if
+    * any.
     */
-   List<Class<? extends UICommand>> getSetupFlow();   
+   List<Class<? extends UICommand>> getSetupFlow();
+
+   /**
+    * Set up this application server provider.
+    */
+   void setup(UIContext context);
+
+   /**
+    * Download and Install the application server.
+    */
+   DirectoryResource install(UIContext context);
 
 }

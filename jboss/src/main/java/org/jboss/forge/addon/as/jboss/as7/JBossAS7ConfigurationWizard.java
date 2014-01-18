@@ -10,10 +10,12 @@ import java.util.List;
 
 import javax.inject.Inject;
 
+import org.apache.commons.lang.StringUtils;
 import org.jboss.forge.addon.configuration.Configuration;
 import org.jboss.forge.addon.configuration.facets.ConfigurationFacet;
 import org.jboss.forge.addon.convert.Converter;
 import org.jboss.forge.addon.dependencies.Coordinate;
+import org.jboss.forge.addon.dependencies.DependencyResolver;
 import org.jboss.forge.addon.dependencies.builder.DependencyBuilder;
 import org.jboss.forge.addon.facets.constraints.FacetConstraint;
 import org.jboss.forge.addon.projects.Project;
@@ -21,7 +23,9 @@ import org.jboss.forge.addon.projects.ProjectFactory;
 import org.jboss.forge.addon.projects.facets.DependencyFacet;
 import org.jboss.forge.addon.projects.facets.ResourcesFacet;
 import org.jboss.forge.addon.projects.ui.AbstractProjectCommand;
+import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.resource.FileResource;
+import org.jboss.forge.addon.resource.converter.DirectoryResourceConverter;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
@@ -51,6 +55,8 @@ public class JBossAS7ConfigurationWizard extends AbstractProjectCommand implemen
 
    private static final String CONFIG_HOSTNAME_KEY = "as.jboss.hostname";
 
+   private static final String CONFIG_PATH_KEY = "as.jboss.path";
+
    /**
     * The default host name
     */
@@ -61,8 +67,21 @@ public class JBossAS7ConfigurationWizard extends AbstractProjectCommand implemen
     */
    static final int DEFAULT_PORT = 9999;
 
+   /**
+    * The default version
+    */
+   static final String DEFAULT_VERSION = "7.1.1.Final";
+
+   /**
+    * The default path
+    */
+   static final String DEFAULT_PATH = "target/jboss-as-dist";
+   
    @Inject
    private ProjectFactory factory;
+
+   @Inject
+   private DependencyResolver resolver;
 
    @Inject
    @WithAttributes(label = "Java Home")
@@ -84,6 +103,10 @@ public class JBossAS7ConfigurationWizard extends AbstractProjectCommand implemen
    @WithAttributes(label = "Port", defaultValue = "" + DEFAULT_PORT)
    private UIInput<String> port;
 
+   @Inject
+   @WithAttributes(label = "Install directory", description = "The path for installing the JBoss AS", required = true)
+   private UIInput<DirectoryResource> installDir;
+
    private Configuration configuration;
 
    private DependencyBuilder jbossAS7Dist = DependencyBuilder.create()
@@ -95,13 +118,23 @@ public class JBossAS7ConfigurationWizard extends AbstractProjectCommand implemen
    @Override
    public NavigationResult next(UINavigationContext context) throws Exception
    {
-      if (version.getValue() != null) {
+      if (version.getValue() != null)
+      {
          configuration.setProperty(CONFIG_VERSION_KEY, version.getValue().getVersion());
-         context.getUIContext().setAttribute(Coordinate.class, version.getValue());
+         context.getUIContext().getAttributeMap().put(Coordinate.class, version.getValue());
       }
 
       if (hostname.getValue() != null)
          configuration.setProperty(CONFIG_HOSTNAME_KEY, hostname.getValue());
+
+      if (installDir.getValue() != null)
+      {
+         String path = installDir.getValue().getFullyQualifiedName();
+         String root = getSelectedProject(context).getProjectRoot().getFullyQualifiedName();
+         if(path.startsWith(root))
+            configuration.setProperty(CONFIG_PATH_KEY, path.substring(root.length()+1));
+         context.getUIContext().getAttributeMap().put(DirectoryResource.class, installDir.getValue());
+      }
 
       configuration.setProperty(CONFIG_PORT_KEY, port.getValue());
 
@@ -150,19 +183,31 @@ public class JBossAS7ConfigurationWizard extends AbstractProjectCommand implemen
 
       DependencyFacet dependencyFacet = project.getFacet(DependencyFacet.class);
       List<Coordinate> dists = dependencyFacet.resolveAvailableVersions(jbossAS7Dist);
+
       version.setValueChoices(dists);
       version.setItemLabelConverter(new Converter<Coordinate, String>()
       {
          @Override
          public String convert(Coordinate coordinate)
          {
-            return coordinate.getVersion() + "-";
+            return coordinate.getVersion();
          }
       });
-
+      
+      String defaultVersion = configuration.getString(CONFIG_VERSION_KEY, DEFAULT_VERSION);
+      for (Coordinate coordinate : dists)
+      {
+         if(coordinate.getVersion().equals(defaultVersion))
+            version.setDefaultValue(coordinate);
+      }
+      
       hostname.setValue(configuration.getString(CONFIG_HOSTNAME_KEY, DEFAULT_HOSTNAME));
       port.setValue(configuration.getString(CONFIG_PORT_KEY, "" + DEFAULT_PORT));
-      builder.add(version).add(hostname).add(port);
+      
+      String path = configuration.getString(CONFIG_PATH_KEY,DEFAULT_PATH);
+      installDir.setDefaultValue(project.getProjectRoot().getChildDirectory(path));   
+      
+      builder.add(version).add(hostname).add(port).add(installDir);
    }
 
    @Override
