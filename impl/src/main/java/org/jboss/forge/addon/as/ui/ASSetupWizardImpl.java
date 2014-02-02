@@ -12,6 +12,7 @@ import java.util.List;
 import javax.inject.Inject;
 
 import org.jboss.forge.addon.as.spi.ApplicationServerProvider;
+import org.jboss.forge.addon.configuration.Configuration;
 import org.jboss.forge.addon.convert.Converter;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
@@ -48,8 +49,8 @@ public class ASSetupWizardImpl extends AbstractProjectCommand implements ASSetup
    @WithAttributes(label = "Target Directory")
    private UIInput<String> target;
 
-//   @Inject
-//   private Imported<ApplicationServerProvider> asProviders;
+   @Inject
+   private Configuration config;
 
    @Inject
    private AddonRegistry registry;
@@ -63,7 +64,7 @@ public class ASSetupWizardImpl extends AbstractProjectCommand implements ASSetup
 
       Imported<ApplicationServerProvider> providerInstances = registry.getServices(ApplicationServerProvider.class);
       List<ApplicationServerProvider> providerList = new ArrayList<ApplicationServerProvider>();
-      for(ApplicationServerProvider provider: providerInstances)
+      for (ApplicationServerProvider provider : providerInstances)
       {
          providerList.add(provider);
       }
@@ -101,13 +102,18 @@ public class ASSetupWizardImpl extends AbstractProjectCommand implements ASSetup
    {
       ApplicationServerProvider selectedProvider = (ApplicationServerProvider) context.getUIContext()
                .getAttributeMap().get(ApplicationServerProvider.class);
-      try {
-       selectedProvider.setup(context.getUIContext());
-       selectedProvider.install(context.getUIContext());
-      }catch(Exception ex) {
+      config.setProperty("as.name", selectedProvider.getName());
+      try
+      {
+         selectedProvider.setup(context.getUIContext());
+         selectedProvider.install(context.getUIContext());
+      }
+      catch (Exception ex)
+      {
          ex.printStackTrace();
       }
-      return Results.success("JBoss AS7 was setup successfully.");   }
+      return Results.success("The applicaion server was setup successfully.");
+   }
 
    @Override
    public NavigationResult next(UINavigationContext context) throws Exception
@@ -115,10 +121,10 @@ public class ASSetupWizardImpl extends AbstractProjectCommand implements ASSetup
       ApplicationServerProvider selectedProvider = provider.getValue();
       UIContext uiContext = context.getUIContext();
       uiContext.getAttributeMap().put(ApplicationServerProvider.class, selectedProvider);
-      
+
       Project project = getSelectedProject(context);
       uiContext.getAttributeMap().put(Project.class, project);
-      
+
       // Get the step sequence from the selected application server provider
       List<Class<? extends UICommand>> setupFlow = selectedProvider.getSetupFlow();
 

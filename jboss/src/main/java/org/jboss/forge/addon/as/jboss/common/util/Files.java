@@ -20,7 +20,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.forge.addon.as.jboss.as7.util;
+package org.jboss.forge.addon.as.jboss.common.util;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -35,6 +35,9 @@ import java.util.Enumeration;
 
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
+import org.jboss.forge.addon.as.jboss.as7.util.FilePermissions;
+import org.jboss.forge.addon.as.jboss.as7.util.Messages;
+import org.jboss.forge.addon.as.jboss.as7.util.Streams;
 
 /**
  * Utility for {@link java.io.File files}.

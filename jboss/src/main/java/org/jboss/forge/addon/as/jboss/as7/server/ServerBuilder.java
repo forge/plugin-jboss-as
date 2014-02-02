@@ -28,7 +28,7 @@ import java.net.InetAddress;
 
 import javax.security.auth.callback.CallbackHandler;
 
-import org.jboss.forge.addon.as.jboss.as7.util.Files;
+import org.jboss.forge.addon.as.jboss.common.util.Files;
 
 
 /**
