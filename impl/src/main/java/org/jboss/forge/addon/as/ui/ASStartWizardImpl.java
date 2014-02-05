@@ -6,23 +6,17 @@
  */
 package org.jboss.forge.addon.as.ui;
 
-import java.util.List;
-
 import javax.inject.Inject;
 
 import org.jboss.forge.addon.as.spi.ApplicationServerProvider;
 import org.jboss.forge.addon.configuration.Configuration;
-import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
 import org.jboss.forge.addon.projects.ui.AbstractProjectCommand;
-import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
 import org.jboss.forge.addon.ui.context.UINavigationContext;
 import org.jboss.forge.addon.ui.context.UIValidationContext;
-import org.jboss.forge.addon.ui.input.UISelectOne;
-import org.jboss.forge.addon.ui.metadata.WithAttributes;
 import org.jboss.forge.addon.ui.result.NavigationResult;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
@@ -51,6 +45,7 @@ public class ASStartWizardImpl extends AbstractProjectCommand implements ASStart
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
+      
    }
 
    @Override
@@ -72,9 +67,18 @@ public class ASStartWizardImpl extends AbstractProjectCommand implements ASStart
    {
       Imported<ApplicationServerProvider> providerInstances = registry.getServices(ApplicationServerProvider.class);
       String providerName = config.getString("as.name");
-      ApplicationServerProvider selectedProvider = providerInstances.get();
-      selectedProvider.start(context.getUIContext());
-      return Results.success("The application server was started successfully.");
+      ApplicationServerProvider selectedProvider = null;
+      for (ApplicationServerProvider provider : providerInstances)
+      {
+         if(provider.getName().equals(providerName))
+            selectedProvider = provider;
+      }
+      
+      if(selectedProvider == null)
+         return Results.fail("No application server provider found.");
+      
+      return selectedProvider.start(context.getUIContext());
+      //return Results.success("The application server " + selectedProvider.getName() + " was started successfully.");
    }
 
    @Override

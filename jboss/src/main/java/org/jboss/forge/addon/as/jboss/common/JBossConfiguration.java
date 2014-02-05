@@ -19,15 +19,21 @@ public abstract class JBossConfiguration
 
    private static final String CONFIG_PATH_KEY = "path";
 
-   private String index = CONFIG_PREFIX + "." + getASName() + ".";
+   protected String index = CONFIG_PREFIX + "." + getASName() + ".";
 
    /**
     * The default host name
     */
    static final String DEFAULT_HOSTNAME = "localhost";
 
+   /**
+    * The default port
+    */
+   static final int DEFAULT_PORT = 9999;
+
+   
    @Inject
-   private Configuration config;
+   protected Configuration config;
 
    private Coordinate distribution;
 
@@ -68,6 +74,11 @@ public abstract class JBossConfiguration
    public String getHostname()
    {
       return config.getString(CONFIG_HOSTNAME_KEY, DEFAULT_HOSTNAME);
+   }
+
+   public int getPort()
+   {
+      return config.getInt(CONFIG_PORT_KEY, DEFAULT_PORT);
    }
 
    public Coordinate getDistibution()

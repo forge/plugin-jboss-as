@@ -8,11 +8,11 @@ package org.jboss.forge.addon.as.spi;
 
 import java.util.List;
 
-import org.jboss.forge.addon.facets.Facet;
 import org.jboss.forge.addon.projects.ProjectFacet;
 import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.context.UIContext;
+import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.validate.UIValidator;
 
 /**
@@ -52,4 +52,10 @@ public interface ApplicationServerProvider extends ProjectFacet, UIValidator
     */
    DirectoryResource install(UIContext context);
 
+   /**
+    * Start the application server.
+    */
+   Result  start(UIContext context);
+
+      
 }

@@ -26,6 +26,8 @@ import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIValidationContext;
+import org.jboss.forge.addon.ui.result.Result;
+import org.jboss.forge.addon.ui.result.Results;
 
 /**
  * The application server provider
@@ -101,7 +103,8 @@ public abstract class JBossProvider extends AbstractFacet<Project> implements Ap
    }
 
    @Override
-   public void start(UIContext context)
+   public Result start(UIContext context)
    {
+      return Results.fail("Not implemented yet");
    }
 }
