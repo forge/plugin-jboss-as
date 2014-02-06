@@ -107,4 +107,10 @@ public abstract class JBossProvider extends AbstractFacet<Project> implements Ap
    {
       return Results.fail("Not implemented yet");
    }
+
+   @Override
+   public Result shutdown(UIContext context)
+   {
+      return Results.fail("Not implemented yet");
+   }
 }

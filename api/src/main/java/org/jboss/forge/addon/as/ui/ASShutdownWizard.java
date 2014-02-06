@@ -9,11 +9,11 @@ package org.jboss.forge.addon.as.ui;
 import org.jboss.forge.addon.ui.wizard.UIWizard;
 
 /**
- * Stop the application server command.
+ * Shutdown the application server command.
  * 
  * @author Jeremie Lagarde
  */
-public interface ASStopWizard extends UIWizard
+public interface ASShutdownWizard extends UIWizard
 {
 
 }

@@ -88,7 +88,8 @@ public class JBossAS7Provider extends JBossProvider
             final File targetHome = new File(configuration.getPath());
             // final String jreHome = configuration.getJavaHome();
             final String version = configuration.getVersion();
-            final Server server = ServerBuilder.of(callbackHandler, targetHome, version.startsWith("7.0"))
+            final Server server = ServerBuilder
+                     .of(callbackHandler, targetHome, version.startsWith("7.0"))
                      .setBundlesDir(configuration.getBundlesDir())
                      .setHostAddress(InetAddress.getByName(configuration.getHostname()))
                      .setJavaHome(System.getenv("JAVA_HOME") /* jreHome */)
@@ -96,7 +97,7 @@ public class JBossAS7Provider extends JBossProvider
                      .setModulesDir(new File(targetHome.getAbsolutePath() + "/modules") /* configuration.getModulesDir() */)
                      .setOutputStream(consoleOut)
                      .setPort(configuration.getPort())
-                     .setServerConfig( configuration.getServerConfigFile() )
+                     .setServerConfig(configuration.getServerConfigFile())
                      .build();
             try
             {
@@ -123,7 +124,8 @@ public class JBossAS7Provider extends JBossProvider
          }
          catch (Exception e)
          {
-            result = Results.fail(messages.getMessage("server.start.failed.exception", configuration.getVersion(), e.getLocalizedMessage()));
+            result = Results.fail(messages.getMessage("server.start.failed.exception", configuration.getVersion(),
+                     e.getLocalizedMessage()));
          }
          if (result instanceof Failed)
          {
@@ -174,4 +176,41 @@ public class JBossAS7Provider extends JBossProvider
       Streams.safeClose(consoleOut);
       consoleOut = null;
    }
+   
+   @Override
+   public Result shutdown(UIContext context)
+   {
+      Result result = Results.success(messages.getMessage("server.shutdown.success"));
+      final Server server = serverController.getServer();
+      if (server == null)
+      {
+         try
+         {
+            final ModelNode response = getClient().execute(ServerOperations.SHUTDOWN_OP);
+            if (ServerOperations.isSuccessfulOutcome(response))
+            {
+               result = Results.success(ServerOperations.readResultAsString(response));
+            }
+            else
+            {
+               result = Results.fail(ServerOperations.readResultAsString(response));
+            }
+         }
+         catch (IOException e)
+         {
+            result = Results.fail(e.getLocalizedMessage());
+         }
+         finally
+         {
+            serverController.closeClient();
+         }
+      }
+      else
+      {
+         serverController.shutdownServer();
+      }
+      return result;
+
+   }
+
 }
