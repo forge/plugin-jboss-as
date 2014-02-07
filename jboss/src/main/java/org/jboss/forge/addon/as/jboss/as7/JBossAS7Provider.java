@@ -20,12 +20,23 @@ import org.jboss.forge.addon.as.jboss.as7.server.Server;
 import org.jboss.forge.addon.as.jboss.as7.server.Server.State;
 import org.jboss.forge.addon.as.jboss.as7.server.ServerBuilder;
 import org.jboss.forge.addon.as.jboss.as7.server.ServerOperations;
+import org.jboss.forge.addon.as.jboss.as7.server.deployment.Deployment;
+import org.jboss.forge.addon.as.jboss.as7.server.deployment.Deployment.Type;
+import org.jboss.forge.addon.as.jboss.as7.server.deployment.DeploymentFailedException;
+import org.jboss.forge.addon.as.jboss.as7.server.deployment.standalone.StandaloneDeployment;
 import org.jboss.forge.addon.as.jboss.as7.ui.JBossAS7ConfigurationWizard;
 import org.jboss.forge.addon.as.jboss.as7.util.Messages;
 import org.jboss.forge.addon.as.jboss.as7.util.Streams;
 import org.jboss.forge.addon.as.jboss.common.JBossProvider;
 import org.jboss.forge.addon.as.jboss.common.ui.JBossConfigurationWizard;
+import org.jboss.forge.addon.projects.Project;
+import org.jboss.forge.addon.projects.ProjectFactory;
+import org.jboss.forge.addon.projects.facets.PackagingFacet;
+import org.jboss.forge.addon.resource.FileResource;
+import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
+import org.jboss.forge.addon.ui.context.UIExecutionContext;
+import org.jboss.forge.addon.ui.context.UISelection;
 import org.jboss.forge.addon.ui.result.Failed;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
@@ -46,6 +57,9 @@ public class JBossAS7Provider extends JBossProvider
 
    @Inject
    private CallbackHandler callbackHandler;
+
+   @Inject
+   private ProjectFactory projectFactory;
 
    private ServerConsoleWrapper consoleOut;
 
@@ -176,7 +190,7 @@ public class JBossAS7Provider extends JBossProvider
       Streams.safeClose(consoleOut);
       consoleOut = null;
    }
-   
+
    @Override
    public Result shutdown(UIContext context)
    {
@@ -213,4 +227,81 @@ public class JBossAS7Provider extends JBossProvider
 
    }
 
+   @Override
+   public Result deploy(UIContext context)
+   {
+      final State state = getState();
+      Result result;
+
+      // The server must be running
+      if (state.isRunningState())
+      {
+
+         String path = null;
+         Type type = Type.DEPLOY;
+
+         final PackagingFacet packagingFacet = getSelectedProject(context).getFacet(PackagingFacet.class);
+
+         // Can't deploy what doesn't exist
+         if (!packagingFacet.getFinalArtifact().exists())
+            throw new DeploymentFailedException(messages.getMessage("deployment.not.found", path, type));
+         final File content;
+         if (path == null)
+         {
+            content = new File(packagingFacet.getFinalArtifact().getFullyQualifiedName());
+         }
+         else if (path.startsWith("/"))
+         {
+            content = new File(path);
+         }
+         else
+         {
+            // TODO this might not work for EAR deployments
+            content = new File(packagingFacet.getFinalArtifact().getParent().getFullyQualifiedName(), path);
+         }
+         try
+         {
+            final ModelControllerClient client = getClient();
+            final Deployment deployment = StandaloneDeployment.create(client, content, null, type);
+            deployment.execute();
+            result = Results.success(messages.getMessage("deployment.successful", type));
+         }
+         catch (Exception e)
+         {
+            if (e.getCause() != null)
+            {
+               result = Results.fail(e.getLocalizedMessage() + ": " + e.getCause()
+                        .getLocalizedMessage());
+            }
+            else
+            {
+               result = Results.fail(e.getLocalizedMessage());
+            }
+         }
+      }
+      else
+      {
+         result = Results.fail(messages.getMessage("server.not.running", configuration.getHostname(),
+                  configuration.getPort()));
+
+      }
+
+      return result;
+
+   }
+   
+
+   /**
+    * Returns the selected project. null if no project is found
+    */
+   protected Project getSelectedProject(UIContext context)
+   {
+      Project project = null;
+      UISelection<FileResource<?>> initialSelection = context.getInitialSelection();
+      if (!initialSelection.isEmpty())
+      {
+         project = projectFactory.findProject(initialSelection.get());
+      }
+      return project;
+   }
 }

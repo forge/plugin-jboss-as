@@ -62,4 +62,9 @@ public interface ApplicationServerProvider extends ProjectFacet, UIValidator
     */
    Result shutdown(UIContext context);
 
+   /**
+    * Deploy an application in the application server.
+    */
+   Result deploy(UIContext uiContext);
+
 }

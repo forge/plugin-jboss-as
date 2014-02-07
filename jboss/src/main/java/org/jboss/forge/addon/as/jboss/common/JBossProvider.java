@@ -13,7 +13,6 @@ import java.util.List;
 
 import javax.inject.Inject;
 
-import org.jboss.forge.addon.as.jboss.common.JBossConfiguration;
 import org.jboss.forge.addon.as.jboss.common.ui.JBossConfigurationWizard;
 import org.jboss.forge.addon.as.jboss.common.util.Files;
 import org.jboss.forge.addon.as.spi.ApplicationServerProvider;
@@ -21,7 +20,11 @@ import org.jboss.forge.addon.dependencies.Dependency;
 import org.jboss.forge.addon.dependencies.DependencyResolver;
 import org.jboss.forge.addon.dependencies.builder.DependencyQueryBuilder;
 import org.jboss.forge.addon.facets.AbstractFacet;
+import org.jboss.forge.addon.facets.constraints.FacetConstraint;
 import org.jboss.forge.addon.projects.Project;
+import org.jboss.forge.addon.projects.ProjectFacet;
+import org.jboss.forge.addon.projects.facets.PackagingFacet;
+import org.jboss.forge.addon.projects.facets.ResourcesFacet;
 import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.context.UIContext;
@@ -34,6 +37,7 @@ import org.jboss.forge.addon.ui.result.Results;
  * 
  * @author Jeremie Lagarde
  */
+@FacetConstraint({ ProjectFacet.class, ResourcesFacet.class })
 public abstract class JBossProvider extends AbstractFacet<Project> implements ApplicationServerProvider
 {
 
@@ -110,6 +114,12 @@ public abstract class JBossProvider extends AbstractFacet<Project> implements Ap
 
    @Override
    public Result shutdown(UIContext context)
+   {
+      return Results.fail("Not implemented yet");
+   }
+   
+   @Override
+   public Result deploy(UIContext context)
    {
       return Results.fail("Not implemented yet");
    }
