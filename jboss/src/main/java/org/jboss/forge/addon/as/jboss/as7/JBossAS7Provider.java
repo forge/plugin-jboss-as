@@ -33,9 +33,7 @@ import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
 import org.jboss.forge.addon.projects.facets.PackagingFacet;
 import org.jboss.forge.addon.resource.FileResource;
-import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
-import org.jboss.forge.addon.ui.context.UIExecutionContext;
 import org.jboss.forge.addon.ui.context.UISelection;
 import org.jboss.forge.addon.ui.result.Failed;
 import org.jboss.forge.addon.ui.result.Result;
@@ -46,9 +44,8 @@ import org.jboss.forge.addon.ui.result.Results;
  * 
  * @author Jeremie Lagarde
  */
-public class JBossAS7Provider extends JBossProvider
+public class JBossAS7Provider extends JBossProvider<JBossAS7Configuration>
 {
-
    @Inject
    private ServerController serverController;
 
@@ -83,6 +80,12 @@ public class JBossAS7Provider extends JBossProvider
       return JBossAS7ConfigurationWizard.class;
    }
 
+   @Override
+   protected JBossAS7Configuration getConfig()
+   {
+      return configuration;
+   }
+   
    @Override
    public Result start(UIContext context)
    {
@@ -228,7 +231,16 @@ public class JBossAS7Provider extends JBossProvider
    }
 
    @Override
-   public Result deploy(UIContext context)
+   public Result deploy(UIContext context) {
+      return processDeployment(getSelectedProject(context), (String) context.getAttributeMap().get("path"), Type.DEPLOY);
+   }
+
+   @Override
+   public Result undeploy(UIContext context) {
+      return processDeployment(getSelectedProject(context), (String) context.getAttributeMap().get("path"), Type.UNDEPLOY);
+   }
+   
+   protected Result processDeployment(Project project,String path, Type type)
    {
       final State state = getState();
       Result result;
@@ -237,10 +249,7 @@ public class JBossAS7Provider extends JBossProvider
       if (state.isRunningState())
       {
 
-         String path = null;
-         Type type = Type.DEPLOY;
-
-         final PackagingFacet packagingFacet = getSelectedProject(context).getFacet(PackagingFacet.class);
+         final PackagingFacet packagingFacet = project.getFacet(PackagingFacet.class);
 
          // Can't deploy what doesn't exist
          if (!packagingFacet.getFinalArtifact().exists())
@@ -289,7 +298,6 @@ public class JBossAS7Provider extends JBossProvider
       return result;
 
    }
-   
 
    /**
     * Returns the selected project. null if no project is found
@@ -304,4 +312,5 @@ public class JBossAS7Provider extends JBossProvider
       }
       return project;
    }
+
 }

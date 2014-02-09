@@ -6,6 +6,8 @@
  */
 package org.jboss.forge.addon.as.jboss.wf8;
 
+import javax.inject.Inject;
+
 import org.jboss.forge.addon.as.jboss.common.JBossProvider;
 import org.jboss.forge.addon.as.jboss.common.ui.JBossConfigurationWizard;
 import org.jboss.forge.addon.as.jboss.wf8.ui.WildFly8ConfigurationWizard;
@@ -15,8 +17,12 @@ import org.jboss.forge.addon.as.jboss.wf8.ui.WildFly8ConfigurationWizard;
  * 
  * @author Jeremie Lagarde
  */
-public class WildFly8Provider extends JBossProvider
+public class WildFly8Provider extends JBossProvider<WildFly8Configuration>
 {
+
+   @Inject
+   private WildFly8Configuration configuration;
+
    @Override
    public String getName()
    {
@@ -33,6 +39,12 @@ public class WildFly8Provider extends JBossProvider
    protected Class<? extends JBossConfigurationWizard> getConfigurationWizardClass()
    {
       return WildFly8ConfigurationWizard.class;
+   }
+
+   @Override
+   protected WildFly8Configuration getConfig()
+   {
+      return configuration;
    }
 
 }

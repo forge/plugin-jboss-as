@@ -51,7 +51,12 @@ public interface ApplicationServerProvider extends ProjectFacet, UIValidator
     * Download and Install the application server.
     */
    DirectoryResource install(UIContext context);
-
+   
+   /**
+    * Check if the application server is installed.
+    */
+   boolean isASInstalled(UIContext context);
+   
    /**
     * Start the application server.
     */
@@ -66,5 +71,10 @@ public interface ApplicationServerProvider extends ProjectFacet, UIValidator
     * Deploy an application in the application server.
     */
    Result deploy(UIContext uiContext);
+
+   /**
+    * Undeploy an application in the application server.
+    */
+   Result undeploy(UIContext uiContext);
 
 }

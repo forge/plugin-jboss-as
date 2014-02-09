@@ -13,10 +13,12 @@ import javax.inject.Inject;
 
 import org.jboss.forge.addon.as.spi.ApplicationServerProvider;
 import org.jboss.forge.addon.configuration.Configuration;
+import org.jboss.forge.addon.configuration.facets.ConfigurationFacet;
 import org.jboss.forge.addon.convert.Converter;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
 import org.jboss.forge.addon.projects.ui.AbstractProjectCommand;
+import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
@@ -39,8 +41,27 @@ import org.jboss.forge.furnace.services.Imported;
  * 
  * @author Jeremie Lagarde
  */
-public class ASSetupWizardImpl extends AbstractProjectCommand implements ASSetupWizard
+public class ASSetupWizardImpl extends AbstractASWizardImpl implements ASSetupWizard
 {
+
+   @Override
+   protected String getName()
+   {
+      return "Setup";
+   }
+
+   @Override
+   protected String getDescription()
+   {
+      return "Setup the Application Server";
+   }
+   
+   @Override
+   public boolean isEnabled(UIContext context)
+   {
+      return true;
+   }
+   
    @Inject
    @WithAttributes(label = "AS Provider", required = true)
    private UISelectOne<ApplicationServerProvider> provider;
@@ -48,15 +69,6 @@ public class ASSetupWizardImpl extends AbstractProjectCommand implements ASSetup
    @Inject
    @WithAttributes(label = "Target Directory")
    private UIInput<String> target;
-
-   @Inject
-   private Configuration config;
-
-   @Inject
-   private AddonRegistry registry;
-
-   @Inject
-   private ProjectFactory factory;
 
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
@@ -90,40 +102,17 @@ public class ASSetupWizardImpl extends AbstractProjectCommand implements ASSetup
    }
 
    @Override
-   public Metadata getMetadata(UIContext context)
-   {
-      return Metadata.from(super.getMetadata(context), getClass()).name("AS: Setup")
-               .description("Setup the AS")
-               .category(Categories.create("AS", "Setup"));
-   }
-
-   @Override
-   public Result execute(UIExecutionContext context) throws Exception
-   {
-      ApplicationServerProvider selectedProvider = (ApplicationServerProvider) context.getUIContext()
-               .getAttributeMap().get(ApplicationServerProvider.class);
-      config.setProperty("as.name", selectedProvider.getName());
-      try
-      {
-         selectedProvider.setup(context.getUIContext());
-         selectedProvider.install(context.getUIContext());
-      }
-      catch (Exception ex)
-      {
-         ex.printStackTrace();
-      }
-      return Results.success("The applicaion server was setup successfully.");
-   }
-
-   @Override
    public NavigationResult next(UINavigationContext context) throws Exception
    {
       ApplicationServerProvider selectedProvider = provider.getValue();
       UIContext uiContext = context.getUIContext();
       uiContext.getAttributeMap().put(ApplicationServerProvider.class, selectedProvider);
 
-      Project project = getSelectedProject(context);
+      Project project = getSelectedProject(context);      
       uiContext.getAttributeMap().put(Project.class, project);
+
+      Configuration config = project.getFacet(ConfigurationFacet.class).getConfiguration();
+      config.setProperty("as.name", selectedProvider.getName());
 
       // Get the step sequence from the selected application server provider
       List<Class<? extends UICommand>> setupFlow = selectedProvider.getSetupFlow();
@@ -133,16 +122,13 @@ public class ASSetupWizardImpl extends AbstractProjectCommand implements ASSetup
       Class<?>[] additional = setupFlow.toArray(new Class<?>[setupFlow.size()]);
       return context.navigateTo(next, (Class<? extends UICommand>[]) additional);
    }
-
+   
    @Override
-   protected boolean isProjectRequired()
+   protected Result execute(ApplicationServerProvider provider, UIContext context) throws Exception
    {
-      return true;
+      provider.setup(context);
+      provider.install(context);
+      return Results.success("The applicaion server was setup successfully.");      
    }
 
-   @Override
-   protected ProjectFactory getProjectFactory()
-   {
-      return factory;
-   }
 }

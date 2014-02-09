@@ -13,6 +13,7 @@ import java.util.List;
 
 import javax.inject.Inject;
 
+import org.apache.commons.io.FileUtils;
 import org.jboss.forge.addon.as.jboss.common.ui.JBossConfigurationWizard;
 import org.jboss.forge.addon.as.jboss.common.util.Files;
 import org.jboss.forge.addon.as.spi.ApplicationServerProvider;
@@ -23,7 +24,6 @@ import org.jboss.forge.addon.facets.AbstractFacet;
 import org.jboss.forge.addon.facets.constraints.FacetConstraint;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFacet;
-import org.jboss.forge.addon.projects.facets.PackagingFacet;
 import org.jboss.forge.addon.projects.facets.ResourcesFacet;
 import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.ui.command.UICommand;
@@ -38,7 +38,8 @@ import org.jboss.forge.addon.ui.result.Results;
  * @author Jeremie Lagarde
  */
 @FacetConstraint({ ProjectFacet.class, ResourcesFacet.class })
-public abstract class JBossProvider extends AbstractFacet<Project> implements ApplicationServerProvider
+public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends AbstractFacet<Project> implements
+         ApplicationServerProvider
 {
 
    @Inject
@@ -62,7 +63,9 @@ public abstract class JBossProvider extends AbstractFacet<Project> implements Ap
    }
 
    protected abstract Class<? extends JBossConfigurationWizard> getConfigurationWizardClass();
-   
+
+   protected abstract CONFIG getConfig();
+
    @Override
    public List<Class<? extends UICommand>> getSetupFlow()
    {
@@ -74,6 +77,12 @@ public abstract class JBossProvider extends AbstractFacet<Project> implements Ap
    @Override
    public void setup(UIContext context)
    {
+   }
+
+   @Override
+   public boolean isASInstalled(UIContext context)
+   {
+      return getConfig().getPath() != null && FileUtils.getFile(getConfig().getPath()).exists();
    }
 
    @Override
@@ -117,9 +126,15 @@ public abstract class JBossProvider extends AbstractFacet<Project> implements Ap
    {
       return Results.fail("Not implemented yet");
    }
-   
+
    @Override
    public Result deploy(UIContext context)
+   {
+      return Results.fail("Not implemented yet");
+   }
+
+   @Override
+   public Result undeploy(UIContext context)
    {
       return Results.fail("Not implemented yet");
    }

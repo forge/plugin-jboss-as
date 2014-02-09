@@ -6,95 +6,34 @@
  */
 package org.jboss.forge.addon.as.ui;
 
-import javax.inject.Inject;
-
 import org.jboss.forge.addon.as.spi.ApplicationServerProvider;
-import org.jboss.forge.addon.configuration.Configuration;
-import org.jboss.forge.addon.projects.ProjectFactory;
-import org.jboss.forge.addon.projects.ui.AbstractProjectCommand;
-import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
-import org.jboss.forge.addon.ui.context.UIExecutionContext;
-import org.jboss.forge.addon.ui.context.UINavigationContext;
-import org.jboss.forge.addon.ui.context.UIValidationContext;
-import org.jboss.forge.addon.ui.result.NavigationResult;
 import org.jboss.forge.addon.ui.result.Result;
-import org.jboss.forge.addon.ui.result.Results;
-import org.jboss.forge.addon.ui.util.Categories;
-import org.jboss.forge.addon.ui.util.Metadata;
-import org.jboss.forge.furnace.addons.AddonRegistry;
-import org.jboss.forge.furnace.services.Imported;
 
 /**
  * AS Shutdown Wizard Implementation.
  * 
  * @author Jeremie Lagarde
  */
-public class ASShutdownWizardImpl extends AbstractProjectCommand implements ASStartWizard
+public class ASShutdownWizardImpl extends AbstractASWizardImpl implements ASStartWizard
 {
 
-   @Inject
-   Configuration config;
-   
-   @Inject
-   private ProjectFactory factory;
-
-   @Inject
-   private AddonRegistry registry;
-
    @Override
-   public void initializeUI(UIBuilder builder) throws Exception
+   protected String getName()
    {
-      
+      return "Shutdown";
    }
 
    @Override
-   public void validate(UIValidationContext validator)
+   protected String getDescription()
    {
-      super.validate(validator);
+      return "Shutdown the Application Server";
    }
 
    @Override
-   public Metadata getMetadata(UIContext context)
+   protected Result execute(ApplicationServerProvider provider, UIContext context) throws Exception
    {
-      return Metadata.from(super.getMetadata(context), getClass()).name("AS: Shutdown")
-               .description("Shutdown the AS")
-               .category(Categories.create("AS", "Shutdown"));
+      return provider.shutdown(context);
    }
 
-   @Override
-   public Result execute(UIExecutionContext context) throws Exception
-   {
-      Imported<ApplicationServerProvider> providerInstances = registry.getServices(ApplicationServerProvider.class);
-      String providerName = config.getString("as.name");
-      ApplicationServerProvider selectedProvider = null;
-      for (ApplicationServerProvider provider : providerInstances)
-      {
-         if(provider.getName().equals(providerName))
-            selectedProvider = provider;
-      }
-      
-      if(selectedProvider == null)
-         return Results.fail("No application server provider found.");
-      
-      return selectedProvider.shutdown(context.getUIContext());      
-   }
-
-   @Override
-   public NavigationResult next(UINavigationContext context) throws Exception
-   {
-      return null;
-   }
-
-   @Override
-   protected boolean isProjectRequired()
-   {
-      return true;
-   }
-
-   @Override
-   protected ProjectFactory getProjectFactory()
-   {
-      return factory;
-   }
 }
