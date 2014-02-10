@@ -11,8 +11,8 @@ import javax.inject.Inject;
 import org.jboss.forge.addon.as.spi.ApplicationServerProvider;
 import org.jboss.forge.addon.configuration.Configuration;
 import org.jboss.forge.addon.configuration.facets.ConfigurationFacet;
-import org.jboss.forge.addon.facets.constraints.FacetConstraint;
-import org.jboss.forge.addon.facets.constraints.FacetConstraints;
+import org.jboss.forge.addon.facets.AbstractFacet;
+import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
 import org.jboss.forge.addon.projects.ui.AbstractProjectCommand;
 import org.jboss.forge.addon.ui.context.UIBuilder;
@@ -47,7 +47,7 @@ public abstract class AbstractASWizardImpl extends AbstractProjectCommand implem
    public void initializeUI(UIBuilder builder) throws Exception
    {
    }
-   
+
    @Override
    public Metadata getMetadata(UIContext context)
    {
@@ -55,16 +55,15 @@ public abstract class AbstractASWizardImpl extends AbstractProjectCommand implem
                .description(getDescription()).category(Categories.create("AS"));
    }
 
-   
    @Override
    public boolean isEnabled(UIContext context)
    {
       ApplicationServerProvider selectedProvider = getSelectedProvider(context);
-      if(selectedProvider != null)
+      if (selectedProvider != null)
          return selectedProvider.isASInstalled(context);
       return false;
    }
-   
+
    @Override
    public Result execute(UIExecutionContext context) throws Exception
    {
@@ -72,20 +71,27 @@ public abstract class AbstractASWizardImpl extends AbstractProjectCommand implem
 
       if (selectedProvider == null)
          return Results.fail("No application server provider found.");
-      
+
       return execute(selectedProvider, context.getUIContext());
    }
 
    private ApplicationServerProvider getSelectedProvider(UIContext context)
    {
-      Imported<ApplicationServerProvider> providerInstances = registry.getServices(ApplicationServerProvider.class);
-      Configuration config = getSelectedProject(context).getFacet(ConfigurationFacet.class).getConfiguration();
-      String providerName = config.getString("as.name");
       ApplicationServerProvider selectedProvider = null;
-      for (ApplicationServerProvider provider : providerInstances)
+      Imported<ApplicationServerProvider> providerInstances = registry.getServices(ApplicationServerProvider.class);
+      Project project = getSelectedProject(context);
+      if (project.hasFacet(ConfigurationFacet.class))
       {
-         if (provider.getName().equals(providerName))
-            selectedProvider = provider;
+         Configuration config = project.getFacet(ConfigurationFacet.class).getConfiguration();
+         String providerName = config.getString("as.name");
+         for (ApplicationServerProvider provider : providerInstances)
+         {
+            if (provider.getName().equals(providerName))
+            {
+               selectedProvider = provider;
+               ((AbstractFacet) selectedProvider).setFaceted(project);
+            }
+         }
       }
       return selectedProvider;
    }

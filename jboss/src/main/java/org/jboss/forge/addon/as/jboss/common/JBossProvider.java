@@ -17,6 +17,7 @@ import org.apache.commons.io.FileUtils;
 import org.jboss.forge.addon.as.jboss.common.ui.JBossConfigurationWizard;
 import org.jboss.forge.addon.as.jboss.common.util.Files;
 import org.jboss.forge.addon.as.spi.ApplicationServerProvider;
+import org.jboss.forge.addon.configuration.facets.ConfigurationFacet;
 import org.jboss.forge.addon.dependencies.Dependency;
 import org.jboss.forge.addon.dependencies.DependencyResolver;
 import org.jboss.forge.addon.dependencies.builder.DependencyQueryBuilder;
@@ -26,6 +27,7 @@ import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFacet;
 import org.jboss.forge.addon.projects.facets.ResourcesFacet;
 import org.jboss.forge.addon.resource.DirectoryResource;
+import org.jboss.forge.addon.resource.converter.DirectoryResourceConverter;
 import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIValidationContext;
@@ -37,7 +39,7 @@ import org.jboss.forge.addon.ui.result.Results;
  * 
  * @author Jeremie Lagarde
  */
-@FacetConstraint({ ProjectFacet.class, ResourcesFacet.class })
+@FacetConstraint({ ProjectFacet.class, ConfigurationFacet.class, ResourcesFacet.class })
 public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends AbstractFacet<Project> implements
          ApplicationServerProvider
 {
@@ -45,6 +47,9 @@ public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends A
    @Inject
    private DependencyResolver resolver;
 
+//   @Inject
+//   private DirectoryResourceConverter directoryResourceConverter;
+   
    @Override
    public boolean install()
    {
@@ -65,6 +70,15 @@ public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends A
    protected abstract Class<? extends JBossConfigurationWizard> getConfigurationWizardClass();
 
    protected abstract CONFIG getConfig();
+   
+   @Override
+   public void setFaceted(Project project)
+   {
+      super.setFaceted(project);
+      if(project.hasFacet(ConfigurationFacet.class))
+         getConfig().setProject(project);
+   }
+   
 
    @Override
    public List<Class<? extends UICommand>> getSetupFlow()
@@ -88,12 +102,12 @@ public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends A
    @Override
    public DirectoryResource install(UIContext context)
    {
-      JBossConfiguration config = (JBossConfiguration) context.getAttributeMap().get(JBossConfiguration.class);
-      DirectoryResource path = config.getInstallDir();
+      JBossConfiguration config = getConfig();
+      String path = config.getPath();
 
       Dependency dist = resolver.resolveArtifact(DependencyQueryBuilder.create(config.getDistibution()));
 
-      File target = new File(path.getFullyQualifiedName());
+      File target = new File(path);
 
       try
       {
@@ -105,7 +119,7 @@ public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends A
             }
          }
          Files.extractAppServer(dist.getArtifact().getFullyQualifiedName(), target);
-         return path;
+         return null;//  directoryResourceConverter.convert(target);
       }
       catch (IOException e)
       {

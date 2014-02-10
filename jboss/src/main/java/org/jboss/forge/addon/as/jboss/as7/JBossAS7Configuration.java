@@ -64,13 +64,14 @@ public class JBossAS7Configuration extends JBossConfiguration
       return config.getStringArray(index + CONFIG_JVMARGS_KEY);
    }
 
-   public void  setJvmArgs(String[] args)
+   public void setJvmArgs(String[] args)
    {
       config.addProperty(index + CONFIG_JVMARGS_KEY, args);
    }
-   
+
    public String getServerConfigFile()
    {
       return config.getString(index + CONFIG_CONFIGFILE_KEY);
    }
+   
 }

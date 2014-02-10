@@ -1,13 +1,15 @@
 package org.jboss.forge.addon.as.jboss.common;
 
-import javax.inject.Inject;
-
 import org.apache.commons.lang.StringUtils;
 import org.jboss.forge.addon.configuration.Configuration;
+import org.jboss.forge.addon.configuration.facets.ConfigurationFacet;
 import org.jboss.forge.addon.dependencies.Coordinate;
+import org.jboss.forge.addon.dependencies.builder.CoordinateBuilder;
+import org.jboss.forge.addon.facets.AbstractFacet;
+import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.resource.DirectoryResource;
 
-public abstract class JBossConfiguration
+public abstract class JBossConfiguration extends AbstractFacet<Project>
 {
    private static final String CONFIG_PREFIX = "as.jboss";
 
@@ -18,6 +20,8 @@ public abstract class JBossConfiguration
    private static final String CONFIG_HOSTNAME_KEY = "hostname";
 
    private static final String CONFIG_PATH_KEY = "path";
+
+   private static final String CONFIG_DISTRIBUTION_KEY = "dist";
 
    protected String index = CONFIG_PREFIX + "." + getASName() + ".";
 
@@ -30,19 +34,36 @@ public abstract class JBossConfiguration
     * The default port
     */
    static final int DEFAULT_PORT = 9999;
-
    
-   @Inject
    protected Configuration config;
-
-   private Coordinate distribution;
-
-   private DirectoryResource installDir;
 
    protected abstract String getASName();
 
    protected abstract String getDefaultVersion();
 
+   @Override
+   public boolean install()
+   {
+      return true;
+   }
+
+   @Override
+   public boolean isInstalled()
+   {
+      return true;
+   }
+   
+   void setProject(Project project) {
+      if(project.hasFacet(ConfigurationFacet.class))
+         config = project.getFacet(ConfigurationFacet.class).getConfiguration();
+   }
+
+   public void setFaceted(Project project)
+   {
+      super.setFaceted(project);
+      setProject(project);
+   }
+   
    public String getVersion()
    {
       return config.getString(index + CONFIG_VERSION_KEY, getDefaultVersion());
@@ -60,6 +81,8 @@ public abstract class JBossConfiguration
 
    public String getPath()
    {
+      if(config == null)
+         return null;
       return config.getString(index + CONFIG_PATH_KEY);
    }
 
@@ -83,23 +106,12 @@ public abstract class JBossConfiguration
 
    public Coordinate getDistibution()
    {
-      return distribution;
+      return CoordinateBuilder.create(config.getString(index + CONFIG_DISTRIBUTION_KEY));
    }
 
    public void setDistribution(Coordinate dist)
    {
       setVersion(dist.getVersion());
-      this.distribution = dist;
-   }
-
-   public DirectoryResource getInstallDir()
-   {
-      return installDir;
-   }
-
-   public void setInstalldir(DirectoryResource dir)
-   {
-      setPath(dir.getFullyQualifiedName());
-      this.installDir = dir;
+      config.setProperty(index + CONFIG_DISTRIBUTION_KEY, dist.toString());
    }
 }

@@ -75,11 +75,8 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
 
       if (installDir.getValue() != null)
       {
-         getConfig().setInstalldir(installDir.getValue());
-      }
-
-      context.getUIContext().getAttributeMap().put(JBossConfiguration.class,getConfig());
-      
+         getConfig().setPath(installDir.getValue().getFullyQualifiedName());
+      }      
       return null;
    }
 
@@ -112,6 +109,7 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
       UIContext context = builder.getUIContext();
 
       Project project = getSelectedProject(context);
+      getConfig().setFaceted(project);
       
       DependencyFacet dependencyFacet = project.getFacet(DependencyFacet.class);
       List<Coordinate> dists = dependencyFacet.resolveAvailableVersions(getJBossDistribution());
