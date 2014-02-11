@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<project
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+  xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.jboss.forge.addon</groupId>
@@ -8,101 +9,19 @@
     <version>2.0.0-SNAPSHOT</version>
   </parent>
   <artifactId>as-jboss</artifactId>
-  <properties>
-    <version.org.jboss.as>7.2.0.Final</version.org.jboss.as>
-    <version.org.apache.commons.commons-compress>1.4.1</version.org.apache.commons.commons-compress>
-  </properties>
+  <packaging>pom</packaging>
+  <modules>
+    <module>common</module>
+    <module>as7</module>
+    <module>wf8</module>
+  </modules>
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>org.jboss.as</groupId>
-        <artifactId>jboss-as-dist</artifactId>
-        <version>7.2.0.Final</version>
-        <type>zip</type>
+        <groupId>org.jboss.forge.addon</groupId>
+        <artifactId>jboss-as-common</artifactId>
+        <version>${project.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
-  <dependencies>
-    <dependency>
-      <groupId>org.jboss.forge.addon</groupId>
-      <artifactId>as-api</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.forge.addon</groupId>
-      <artifactId>as-spi</artifactId>
-      <classifier>forge-addon</classifier>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.forge.addon</groupId>
-      <artifactId>configuration</artifactId>
-      <classifier>forge-addon</classifier>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.forge.addon</groupId>
-      <artifactId>projects</artifactId>
-      <classifier>forge-addon</classifier>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.forge.addon</groupId>
-      <artifactId>ui</artifactId>
-      <classifier>forge-addon</classifier>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.forge.furnace.container</groupId>
-      <artifactId>cdi</artifactId>
-      <classifier>forge-addon</classifier>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.forge.addon</groupId>
-      <artifactId>configuration</artifactId>
-      <classifier>forge-addon</classifier>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.as</groupId>
-      <artifactId>jboss-as-controller-client</artifactId>
-      <version>${version.org.jboss.as}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.as</groupId>
-      <artifactId>jboss-as-cli</artifactId>
-      <version>${version.org.jboss.as}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-compress</artifactId>
-      <version>${version.org.apache.commons.commons-compress}</version>
-      <exclusions>
-        <exclusion>
-          <artifactId>xz</artifactId>
-          <groupId>org.tukaani</groupId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-  </dependencies>
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>create-forge-addon</id>
-            <phase>package</phase>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-            <configuration>
-              <classifier>forge-addon</classifier>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
 </project>
