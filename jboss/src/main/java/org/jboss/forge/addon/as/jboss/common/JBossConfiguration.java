@@ -17,6 +17,8 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
 
    private static final String CONFIG_PORT_KEY = "port";
 
+   private static final String CONFIG_TIMEOUT_KEY = "timeout";
+
    private static final String CONFIG_HOSTNAME_KEY = "hostname";
 
    private static final String CONFIG_PATH_KEY = "path";
@@ -34,7 +36,12 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
     * The default port
     */
    static final int DEFAULT_PORT = 9999;
-   
+
+   /**
+    * The default timeout
+    */
+   static final int DEFAULT_TIMEOUT = 90;
+
    protected Configuration config;
 
    protected abstract String getASName();
@@ -52,9 +59,10 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
    {
       return true;
    }
-   
-   void setProject(Project project) {
-      if(project.hasFacet(ConfigurationFacet.class))
+
+   void setProject(Project project)
+   {
+      if (project.hasFacet(ConfigurationFacet.class))
          config = project.getFacet(ConfigurationFacet.class).getConfiguration();
    }
 
@@ -63,7 +71,7 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
       super.setFaceted(project);
       setProject(project);
    }
-   
+
    public String getVersion()
    {
       return config.getString(index + CONFIG_VERSION_KEY, getDefaultVersion());
@@ -81,7 +89,7 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
 
    public String getPath()
    {
-      if(config == null)
+      if (config == null)
          return null;
       return config.getString(index + CONFIG_PATH_KEY);
    }
@@ -102,6 +110,27 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
    public int getPort()
    {
       return config.getInt(CONFIG_PORT_KEY, DEFAULT_PORT);
+   }
+
+   public void setPort(int port)
+   {
+      if (port > 0)
+         config.setProperty(index + CONFIG_PORT_KEY, port);
+      else
+         config.clearProperty(index + CONFIG_PORT_KEY);
+   }
+
+   public int getTimeout()
+   {
+      return config.getInt(CONFIG_TIMEOUT_KEY, DEFAULT_TIMEOUT);
+   }
+
+   public void setTimeout(int timeout)
+   {
+      if (timeout > 0)
+         config.setProperty(index + CONFIG_TIMEOUT_KEY, timeout);
+      else
+         config.clearProperty(index + CONFIG_TIMEOUT_KEY);
    }
 
    public Coordinate getDistibution()

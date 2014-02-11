@@ -61,6 +61,14 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
    @WithAttributes(label = "Install directory", description = "The path for installing the application server", required = true)
    private UIInput<DirectoryResource> installDir;
 
+   @Inject
+   @WithAttributes(label = "Port")
+   private UIInput<Integer> port;
+
+   @Inject
+   @WithAttributes(label = "Stratup Timeout")
+   private UIInput<Integer> timeout;
+
    protected abstract JBossConfiguration getConfig();
 
    protected abstract DependencyBuilder getJBossDistribution();
@@ -76,7 +84,12 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
       if (installDir.getValue() != null)
       {
          getConfig().setPath(installDir.getValue().getFullyQualifiedName());
-      }      
+      }
+
+      getConfig().setPort(port.getValue());
+
+      getConfig().setTimeout(timeout.getValue());
+      
       return null;
    }
 
@@ -107,9 +120,9 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
    public void initializeUI(UIBuilder builder) throws Exception
    {
       UIContext context = builder.getUIContext();
-
+      JBossConfiguration config = getConfig();
       Project project = getSelectedProject(context);
-      getConfig().setFaceted(project);
+      config.setFaceted(project);
       
       DependencyFacet dependencyFacet = project.getFacet(DependencyFacet.class);
       List<Coordinate> dists = dependencyFacet.resolveAvailableVersions(getJBossDistribution());
@@ -124,21 +137,25 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
          }
       });
 
-      String defaultVersion = getConfig().getVersion();
+      String defaultVersion = config.getVersion();
       for (Coordinate coordinate : dists)
       {
          if (coordinate.getVersion().equals(defaultVersion))
             version.setDefaultValue(coordinate);
       }
 
-      String path = getConfig().getPath();
+      String path = config.getPath();
       if(path == null) { 
-         installDir.setDefaultValue(project.getRootDirectory().getChildDirectory(getConfig().getDefaultPath()));
+         installDir.setDefaultValue(project.getRootDirectory().getChildDirectory(config.getDefaultPath()));
       } else {
          installDir.setDefaultValue(resourceFactory.create(DirectoryResource.class, new File(path)));
       }
+
+      port.setDefaultValue(config.getPort());
+
+      timeout.setDefaultValue(config.getTimeout());
       
-      builder.add(version).add(this.installDir);
+      builder.add(version).add(this.installDir).add(port).add(timeout);
    }
 
    @Override

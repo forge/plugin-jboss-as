@@ -118,7 +118,7 @@ public class JBossAS7Provider extends JBossProvider<JBossAS7Configuration>
                      .build();
             try
             {
-               server.start(6000/* configuration.getStartupTimeout() */);
+               server.start( configuration.getTimeout());
 
             }
             catch (Throwable e)
