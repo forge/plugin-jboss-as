@@ -34,7 +34,7 @@ import javax.security.auth.callback.CallbackHandler;
 
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.dmr.ModelNode;
-import org.jboss.forge.addon.as.jboss.as7.util.Streams;
+import org.jboss.forge.addon.as.jboss.common.util.Streams;
 import org.jboss.forge.addon.as.jboss.common.util.Files;
 
 /**

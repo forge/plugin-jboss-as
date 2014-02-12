@@ -37,7 +37,7 @@
     </dependency>
     <dependency>
       <groupId>org.jboss.forge.addon</groupId>
-      <artifactId>as-jboss</artifactId>
+      <artifactId>as-jboss-as7</artifactId>
       <classifier>forge-addon</classifier>
       <version>${project.version}</version>
     </dependency>

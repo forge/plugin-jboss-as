@@ -11,21 +11,70 @@
   <artifactId>as-jboss-as7</artifactId>
   <properties>
     <version.org.jboss.as>7.2.0.Final</version.org.jboss.as>
-    <version.org.apache.commons.commons-compress>1.4.1</version.org.apache.commons.commons-compress>
   </properties>
   <dependencies>
     <dependency>
       <groupId>org.jboss.forge.addon</groupId>
-      <artifactId>jboss-as-common</artifactId>
+      <artifactId>as-spi</artifactId>
+      <classifier>forge-addon</classifier>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.forge.addon</groupId>
+      <artifactId>configuration</artifactId>
+      <classifier>forge-addon</classifier>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.forge.addon</groupId>
+      <artifactId>projects</artifactId>
+      <classifier>forge-addon</classifier>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.forge.addon</groupId>
+      <artifactId>ui</artifactId>
+      <classifier>forge-addon</classifier>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.forge.furnace.container</groupId>
+      <artifactId>cdi</artifactId>
+      <classifier>forge-addon</classifier>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.forge.addon</groupId>
+      <artifactId>as-jboss-common</artifactId>
     </dependency>
     <dependency>
       <groupId>org.jboss.as</groupId>
       <artifactId>jboss-as-cli</artifactId>
       <version>${version.org.jboss.as}</version>
     </dependency>
+    
+    
+    
   </dependencies>
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.jboss.forge.furnace</groupId>
+        <artifactId>furnace-maven-plugin</artifactId>
+        <version>${version.furnace}</version>
+        <executions>
+          <execution>
+            <id>generate-dot</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>generate-dot</goal>
+            </goals>
+            <configuration>
+              <attach>true</attach>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
         <executions>

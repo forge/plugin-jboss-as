@@ -31,7 +31,7 @@ import static org.jboss.as.controller.client.helpers.ClientConstants.READ_ATTRIB
 import org.jboss.as.controller.client.helpers.ClientConstants;
 import org.jboss.as.controller.client.helpers.Operations;
 import org.jboss.dmr.ModelNode;
-import org.jboss.forge.addon.as.jboss.as7.util.Messages;
+import org.jboss.forge.addon.as.jboss.common.util.Messages;
 
 /**
  * A helper for creating operations.

@@ -15,7 +15,25 @@
   <dependencies>
     <dependency>
       <groupId>org.jboss.forge.addon</groupId>
-      <artifactId>jboss-as-common</artifactId>
+      <artifactId>as-spi</artifactId>
+      <classifier>forge-addon</classifier>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.forge.addon</groupId>
+      <artifactId>configuration</artifactId>
+      <classifier>forge-addon</classifier>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.forge.furnace.container</groupId>
+      <artifactId>cdi</artifactId>
+      <classifier>forge-addon</classifier>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.forge.addon</groupId>
+      <artifactId>as-jboss-common</artifactId>
     </dependency>
     <dependency>
       <groupId>org.wildfly</groupId>
@@ -37,8 +55,6 @@
       <artifactId>wildfly-controller-client</artifactId>
       <version>${version.org.wildfly}</version>
     </dependency>
-    <!-- Seems to be needed as the controller client is transitively bringing 
-      it in -->
     <dependency>
       <groupId>org.wildfly</groupId>
       <artifactId>wildfly-protocol</artifactId>

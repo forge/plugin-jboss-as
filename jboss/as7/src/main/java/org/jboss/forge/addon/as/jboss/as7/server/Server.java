@@ -31,7 +31,7 @@ import java.util.Map;
 
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.dmr.ModelNode;
-import org.jboss.forge.addon.as.jboss.as7.util.Messages;
+import org.jboss.forge.addon.as.jboss.common.util.Messages;
 
 /**
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>

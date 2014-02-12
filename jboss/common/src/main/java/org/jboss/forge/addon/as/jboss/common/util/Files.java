@@ -35,9 +35,6 @@ import java.util.Enumeration;
 
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
-import org.jboss.forge.addon.as.jboss.as7.util.FilePermissions;
-import org.jboss.forge.addon.as.jboss.as7.util.Messages;
-import org.jboss.forge.addon.as.jboss.as7.util.Streams;
 
 /**
  * Utility for {@link java.io.File files}.

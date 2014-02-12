@@ -20,7 +20,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.forge.addon.as.jboss.as7.util;
+package org.jboss.forge.addon.as.jboss.common.util;
 
 import java.io.File;
 import java.util.ResourceBundle;

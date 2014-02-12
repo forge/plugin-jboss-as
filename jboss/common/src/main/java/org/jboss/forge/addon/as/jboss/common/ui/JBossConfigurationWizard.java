@@ -12,7 +12,6 @@ import java.util.List;
 import javax.inject.Inject;
 
 import org.jboss.forge.addon.as.jboss.common.JBossConfiguration;
-import org.jboss.forge.addon.as.jboss.wf8.WildFly8Configuration;
 import org.jboss.forge.addon.convert.Converter;
 import org.jboss.forge.addon.dependencies.Coordinate;
 import org.jboss.forge.addon.dependencies.builder.DependencyBuilder;

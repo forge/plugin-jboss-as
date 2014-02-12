@@ -19,7 +19,7 @@
     <dependencies>
       <dependency>
         <groupId>org.jboss.forge.addon</groupId>
-        <artifactId>jboss-as-common</artifactId>
+        <artifactId>as-jboss-common</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

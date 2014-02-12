@@ -27,8 +27,8 @@ import javax.inject.Singleton;
 
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.forge.addon.as.jboss.as7.server.Server;
-import org.jboss.forge.addon.as.jboss.as7.util.Messages;
-import org.jboss.forge.addon.as.jboss.as7.util.Streams;
+import org.jboss.forge.addon.as.jboss.common.util.Messages;
+import org.jboss.forge.addon.as.jboss.common.util.Streams;
 
 /**
  * This class is not thread-safe.

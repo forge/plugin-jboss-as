@@ -31,7 +31,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.sasl.RealmCallback;
 import javax.security.sasl.RealmChoiceCallback;
 
-import org.jboss.forge.addon.as.jboss.as7.util.Messages;
+import org.jboss.forge.addon.as.jboss.common.util.Messages;
 
 
 /**
