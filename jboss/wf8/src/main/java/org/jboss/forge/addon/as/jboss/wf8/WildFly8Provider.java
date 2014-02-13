@@ -13,12 +13,13 @@ import javax.inject.Inject;
 import javax.security.auth.callback.CallbackHandler;
 
 import org.jboss.forge.addon.as.jboss.common.JBossProvider;
+import org.jboss.forge.addon.as.jboss.common.server.ConnectionInfo;
+import org.jboss.forge.addon.as.jboss.common.server.SecurityActions;
+import org.jboss.forge.addon.as.jboss.common.server.Server;
+import org.jboss.forge.addon.as.jboss.common.server.ServerConsoleWrapper;
+import org.jboss.forge.addon.as.jboss.common.server.ServerInfo;
 import org.jboss.forge.addon.as.jboss.common.ui.JBossConfigurationWizard;
 import org.jboss.forge.addon.as.jboss.common.util.Messages;
-import org.jboss.forge.addon.as.jboss.wf8.server.ConnectionInfo;
-import org.jboss.forge.addon.as.jboss.wf8.server.SecurityActions;
-import org.jboss.forge.addon.as.jboss.wf8.server.Server;
-import org.jboss.forge.addon.as.jboss.wf8.server.ServerInfo;
 import org.jboss.forge.addon.as.jboss.wf8.server.StandaloneServer;
 import org.jboss.forge.addon.as.jboss.wf8.ui.WildFly8ConfigurationWizard;
 import org.jboss.forge.addon.projects.ProjectFactory;
@@ -116,7 +117,6 @@ public class WildFly8Provider extends JBossProvider<WildFly8Configuration> imple
              // Add the shutdown hook
              SecurityActions.registerShutdown(server);
              // Start the server
-             // log.info("Server is starting up.");
              server.start();
              server.checkServerState();
          

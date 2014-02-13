@@ -30,6 +30,8 @@ import java.util.List;
 
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.dmr.ModelNode;
+import org.jboss.forge.addon.as.jboss.common.server.Server;
+import org.jboss.forge.addon.as.jboss.common.server.ServerInfo;
 import org.jboss.forge.addon.as.jboss.common.util.Files;
 import org.xnio.IoUtils;
 
@@ -38,7 +40,7 @@ import org.xnio.IoUtils;
  *
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
  */
-public final class StandaloneServer extends Server {
+public final class StandaloneServer extends Server<ModelControllerClient> {
 
     private static final String CONFIG_PATH = "/standalone/configuration/";
     private static final String STARTING = "STARTING";

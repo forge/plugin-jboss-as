@@ -26,7 +26,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Singleton;
 
 import org.jboss.as.controller.client.ModelControllerClient;
-import org.jboss.forge.addon.as.jboss.wf8.server.Server;
+import org.jboss.forge.addon.as.jboss.common.server.Server;
 import org.jboss.forge.addon.as.jboss.common.util.Messages;
 import org.jboss.forge.addon.as.jboss.common.util.Streams;
 
@@ -40,7 +40,7 @@ public class ServerController {
 
     private ModelControllerClient client;
 
-    private Server server;
+    private Server<ModelControllerClient> server;
 
     @PreDestroy
     protected void cleanUp() {
@@ -100,7 +100,7 @@ public class ServerController {
      *
      * @return the server that was set or {@code null} if not server is set
      */
-    public Server getServer() {
+    public Server<ModelControllerClient> getServer() {
         return server;
     }
 
@@ -120,7 +120,7 @@ public class ServerController {
      *
      * @throws IllegalStateException if a server has already be set
      */
-    public void setServer(final Server server) {
+    public void setServer(final Server<ModelControllerClient> server) {
         // Don't allow a server to be set if current is not null
         if (server != null && hasServer()) {
             throw new IllegalStateException(Messages.INSTANCE.getMessage("server.already.connected"));

@@ -1,23 +1,8 @@
 /*
- * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
- * as indicated by the @author tags. See the copyright.txt file in the
- * distribution for a full listing of individual contributors.
+ * Copyright 2014 Red Hat, Inc. and/or its affiliates.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
  */
 
 package org.jboss.forge.addon.as.jboss.as7;
@@ -26,7 +11,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Singleton;
 
 import org.jboss.as.controller.client.ModelControllerClient;
-import org.jboss.forge.addon.as.jboss.as7.server.Server;
+import org.jboss.forge.addon.as.jboss.common.server.Server;
 import org.jboss.forge.addon.as.jboss.common.util.Messages;
 import org.jboss.forge.addon.as.jboss.common.util.Streams;
 
@@ -40,7 +25,7 @@ public class ServerController {
 
     private ModelControllerClient client;
 
-    private Server server;
+    private Server<ModelControllerClient> server;
 
     @PreDestroy
     protected void cleanUp() {
