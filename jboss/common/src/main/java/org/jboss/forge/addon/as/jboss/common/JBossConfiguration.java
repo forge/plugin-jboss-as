@@ -1,3 +1,9 @@
+/*
+ * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.as.jboss.common;
 
 import org.apache.commons.lang.StringUtils;
@@ -7,8 +13,12 @@ import org.jboss.forge.addon.dependencies.Coordinate;
 import org.jboss.forge.addon.dependencies.builder.CoordinateBuilder;
 import org.jboss.forge.addon.facets.AbstractFacet;
 import org.jboss.forge.addon.projects.Project;
-import org.jboss.forge.addon.resource.DirectoryResource;
 
+/**
+ * The Common JBoss Configuration
+ * 
+ * @author Jeremie Lagarde
+ */
 public abstract class JBossConfiguration extends AbstractFacet<Project>
 {
    private static final String CONFIG_PREFIX = "as.jboss";

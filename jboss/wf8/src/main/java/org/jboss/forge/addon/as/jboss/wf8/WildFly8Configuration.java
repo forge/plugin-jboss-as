@@ -20,7 +20,7 @@ public class WildFly8Configuration extends JBossConfiguration
    /**
     * The default version
     */
-   private static final String DEFAULT_VERSION = "8.0.0.CR1";
+   private static final String DEFAULT_VERSION = "8.0.0.Final";
 
    /**
     * The default path

@@ -20,67 +20,96 @@ import java.util.List;
 /**
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
  */
-public class ServerConsoleWrapper extends OutputStream implements Closeable {
+public class ServerConsoleWrapper extends OutputStream implements Closeable
+{
 
-    private final File file;
-    private final FileOutputStream out;
+   private final File file;
+   private final FileOutputStream out;
 
-    public ServerConsoleWrapper() throws IOException {
-        super();
-        file = File.createTempFile("jboss-console", ".log");
-        file.deleteOnExit();
-        out = new FileOutputStream(file);
-    }
+   public ServerConsoleWrapper() throws IOException
+   {
+      super();
+      file = File.createTempFile("jboss-console", ".log");
+      file.deleteOnExit();
+      out = new FileOutputStream(file);
+   }
 
-    public List<String> readAllLines() throws IOException {
-        final List<String> result = new ArrayList<String>();
-        final BufferedReader reader = new BufferedReader(new FileReader(file));
-        String line;
-        while ((line = reader.readLine()) != null) {
+   public List<String> readAllLines() throws IOException
+   {
+      final List<String> result = new ArrayList<String>();
+      final BufferedReader reader = new BufferedReader(new FileReader(file));
+      try
+      {
+         String line;
+         while ((line = reader.readLine()) != null)
+         {
             result.add(line);
-        }
-        return Collections.unmodifiableList(result);
-    }
+         }
+      }
+      finally
+      {
+         reader.close();
+      }
+      return Collections.unmodifiableList(result);
+   }
 
-    public List<String> readLines(final int numberOfLines) throws IOException {
-        final List<String> result = new ArrayList<String>();
-        final BufferedReader reader = new BufferedReader(new FileReader(file));
-        String line;
-        while ((line = reader.readLine()) != null) {
+   public List<String> readLines(final int numberOfLines) throws IOException
+   {
+      final List<String> result = new ArrayList<String>();
+      final BufferedReader reader = new BufferedReader(new FileReader(file));
+
+      try
+      {
+         String line;
+         while ((line = reader.readLine()) != null)
+         {
             result.add(line);
-        }
-        final int end = result.size();
-        final int start = end - numberOfLines;
-        if (start > 0) {
+         }
+         final int end = result.size();
+         final int start = end - numberOfLines;
+         if (start > 0)
+         {
             return Collections.unmodifiableList(result.subList(start, result.size()));
-        } else {
+         }
+         else
+         {
             return Collections.unmodifiableList(result);
-        }
-    }
+         }
+      }
+      finally
+      {
+         reader.close();
+      }
+   }
 
-    @Override
-    public void write(final int b) throws IOException {
-        out.write(b);
-    }
+   @Override
+   public void write(final int b) throws IOException
+   {
+      out.write(b);
+   }
 
-    @Override
-    public void write(final byte[] b) throws IOException {
-        out.write(b);
-    }
+   @Override
+   public void write(final byte[] b) throws IOException
+   {
+      out.write(b);
+   }
 
-    @Override
-    public void write(final byte[] b, final int off, final int len) throws IOException {
-        out.write(b, off, len);
-    }
+   @Override
+   public void write(final byte[] b, final int off, final int len) throws IOException
+   {
+      out.write(b, off, len);
+   }
 
-    @Override
-    public void flush() throws IOException {
-        out.flush();
-    }
+   @Override
+   public void flush() throws IOException
+   {
+      out.flush();
+   }
 
-    @Override
-    public void close() throws IOException {
-        out.close();
-        file.delete();
-    }
+   @Override
+   public void close() throws IOException
+   {
+      out.close();
+      file.delete();
+   }
 }

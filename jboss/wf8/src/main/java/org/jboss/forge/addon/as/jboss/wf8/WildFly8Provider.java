@@ -7,11 +7,13 @@
 package org.jboss.forge.addon.as.jboss.wf8;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 
 import javax.inject.Inject;
 import javax.security.auth.callback.CallbackHandler;
 
+import org.jboss.dmr.ModelNode;
 import org.jboss.forge.addon.as.jboss.common.JBossProvider;
 import org.jboss.forge.addon.as.jboss.common.server.ConnectionInfo;
 import org.jboss.forge.addon.as.jboss.common.server.SecurityActions;
@@ -20,6 +22,7 @@ import org.jboss.forge.addon.as.jboss.common.server.ServerConsoleWrapper;
 import org.jboss.forge.addon.as.jboss.common.server.ServerInfo;
 import org.jboss.forge.addon.as.jboss.common.ui.JBossConfigurationWizard;
 import org.jboss.forge.addon.as.jboss.common.util.Messages;
+import org.jboss.forge.addon.as.jboss.wf8.server.ServerOperations;
 import org.jboss.forge.addon.as.jboss.wf8.server.StandaloneServer;
 import org.jboss.forge.addon.as.jboss.wf8.ui.WildFly8ConfigurationWizard;
 import org.jboss.forge.addon.projects.ProjectFactory;
@@ -82,7 +85,7 @@ public class WildFly8Provider extends JBossProvider<WildFly8Configuration> imple
    public Result start(UIContext context)
    {
       Result result = null;
-      if ((serverController.hasServer() && serverController.getServer().isRunning()) || false)//getState().isRunningState())
+      if ((serverController.hasServer() && serverController.getServer().isRunning()) || false)// getState().isRunningState())
       {
          result = Results.fail(messages.getMessage("server.already.running"));
       }
@@ -93,34 +96,36 @@ public class WildFly8Provider extends JBossProvider<WildFly8Configuration> imple
 
             // Validate the environment
             final File jbossHome = new File(configuration.getPath());
-            if (!jbossHome.isDirectory()) {
+            if (!jbossHome.isDirectory())
+            {
                Results.fail(String.format("JBOSS_HOME '%s' is not a valid directory.", jbossHome));
             }
             // JVM arguments should be space delimited
             final String[] jvmArgs = null; // (this.jvmArgs == null ? null : this.jvmArgs.split("\\s+"));
             final String javaHome;
-//            if (this.javaHome == null) {
-//                javaHome = SecurityActions.getEnvironmentVariable("JAVA_HOME");
-//            } else {
-//                javaHome = this.javaHome;
-//            }
+            // if (this.javaHome == null) {
+            // javaHome = SecurityActions.getEnvironmentVariable("JAVA_HOME");
+            // } else {
+            // javaHome = this.javaHome;
+            // }
             final String modulesPath = null;
             final String serverConfig = null;
             final String propertiesFile = null;
-            
-            final ServerInfo serverInfo = ServerInfo.of(this, System.getenv("JAVA_HOME") /* jreHome */, jbossHome, modulesPath, jvmArgs, serverConfig, propertiesFile, (long)configuration.getTimeout());
-            if (!serverInfo.getModulesDir().isDirectory()) {
+
+            final ServerInfo serverInfo = ServerInfo.of(this, System.getenv("JAVA_HOME") /* jreHome */, jbossHome,
+                     modulesPath, jvmArgs, serverConfig, propertiesFile, (long) configuration.getTimeout());
+            if (!serverInfo.getModulesDir().isDirectory())
+            {
                Results.fail(String.format("Modules path '%s' is not a valid directory.", modulesPath));
             }
-             // Create the server
-             final Server server = new StandaloneServer(serverInfo);
-             // Add the shutdown hook
-             SecurityActions.registerShutdown(server);
-             // Start the server
-             server.start();
-             server.checkServerState();
-         
-   
+            // Create the server
+            final Server server = new StandaloneServer(serverInfo);
+            // Add the shutdown hook
+            SecurityActions.registerShutdown(server);
+            // Start the server
+            server.start();
+            server.checkServerState();
+
             if (server.isRunning())
             {
                result = Results.success(messages.getMessage("server.start.success", configuration.getVersion()));
@@ -141,11 +146,48 @@ public class WildFly8Provider extends JBossProvider<WildFly8Configuration> imple
          }
          if (result instanceof Failed)
          {
-           // closeConsoleOutput();
+            // closeConsoleOutput();
          }
 
       }
       return result;
+   }
+
+   @Override
+   public Result shutdown(UIContext context)
+   {
+      Result result = Results.success(messages.getMessage("server.shutdown.success"));
+      final Server server = serverController.getServer();
+      if (server == null)
+      {
+         try
+         {
+            final ModelNode response = serverController.getClient().execute(ServerOperations
+                     .createOperation(ServerOperations.SHUTDOWN));
+            if (ServerOperations.isSuccessfulOutcome(response))
+            {
+               result = Results.success(ServerOperations.readResultAsString(response));
+            }
+            else
+            {
+               result = Results.fail(ServerOperations.readResultAsString(response));
+            }
+         }
+         catch (IOException e)
+         {
+            result = Results.fail(e.getLocalizedMessage());
+         }
+         finally
+         {
+            serverController.closeClient();
+         }
+      }
+      else
+      {
+         serverController.shutdownServer();
+      }
+      return result;
+
    }
 
    @Override
@@ -156,7 +198,8 @@ public class WildFly8Provider extends JBossProvider<WildFly8Configuration> imple
 
    @Override
    public InetAddress getHostAddress()
-   {  return InetAddresses.forString("127.0.0.1"); //configuration.getHostname();
+   {
+      return InetAddresses.forString("127.0.0.1"); // configuration.getHostname();
    }
 
    @Override
