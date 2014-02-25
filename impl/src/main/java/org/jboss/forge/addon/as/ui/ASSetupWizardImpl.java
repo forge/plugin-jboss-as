@@ -16,13 +16,9 @@ import org.jboss.forge.addon.configuration.Configuration;
 import org.jboss.forge.addon.configuration.facets.ConfigurationFacet;
 import org.jboss.forge.addon.convert.Converter;
 import org.jboss.forge.addon.projects.Project;
-import org.jboss.forge.addon.projects.ProjectFactory;
-import org.jboss.forge.addon.projects.ui.AbstractProjectCommand;
-import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
-import org.jboss.forge.addon.ui.context.UIExecutionContext;
 import org.jboss.forge.addon.ui.context.UINavigationContext;
 import org.jboss.forge.addon.ui.context.UIValidationContext;
 import org.jboss.forge.addon.ui.input.UIInput;
@@ -31,9 +27,6 @@ import org.jboss.forge.addon.ui.metadata.WithAttributes;
 import org.jboss.forge.addon.ui.result.NavigationResult;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
-import org.jboss.forge.addon.ui.util.Categories;
-import org.jboss.forge.addon.ui.util.Metadata;
-import org.jboss.forge.furnace.addons.AddonRegistry;
 import org.jboss.forge.furnace.services.Imported;
 
 /**
@@ -66,10 +59,6 @@ public class ASSetupWizardImpl extends AbstractASWizardImpl implements ASSetupWi
    @WithAttributes(label = "AS Provider", required = true)
    private UISelectOne<ApplicationServerProvider> provider;
 
-   @Inject
-   @WithAttributes(label = "Target Directory")
-   private UIInput<String> target;
-
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
@@ -91,7 +80,7 @@ public class ASSetupWizardImpl extends AbstractASWizardImpl implements ASSetupWi
             return source == null ? null : source.getName();
          }
       });
-      builder.add(provider).add(target);
+      builder.add(provider);
    }
 
    @Override

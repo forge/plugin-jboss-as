@@ -36,7 +36,7 @@ import org.jboss.as.controller.client.helpers.standalone.ServerDeploymentPlanRes
 import org.jboss.as.controller.client.helpers.standalone.ServerUpdateActionResult;
 import org.jboss.dmr.ModelNode;
 import org.jboss.forge.addon.as.jboss.as7.server.ServerOperations;
-import org.jboss.forge.addon.as.jboss.as7.server.deployment.Deployment;
+import org.jboss.forge.addon.as.jboss.common.deployment.Deployment;
 import org.jboss.forge.addon.as.jboss.as7.server.deployment.DeploymentFailedException;
 import org.jboss.forge.addon.as.jboss.common.util.Messages;
 

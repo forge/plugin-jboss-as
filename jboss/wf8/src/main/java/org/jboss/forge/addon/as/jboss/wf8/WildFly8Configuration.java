@@ -27,6 +27,11 @@ public class WildFly8Configuration extends JBossConfiguration
     */
    private static final String DEFAULT_PATH = "target/wildfly-dist";
 
+   /**
+    * The default port
+    */
+   static final int DEFAULT_PORT = 9990;
+
    @Override
    protected String getASName()
    {
@@ -45,4 +50,10 @@ public class WildFly8Configuration extends JBossConfiguration
       return DEFAULT_PATH;
    }
 
+   @Override
+   protected int getDefaultPort()
+   {
+      return DEFAULT_PORT;
+   }
+   
 }

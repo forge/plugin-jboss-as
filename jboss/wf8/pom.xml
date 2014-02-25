@@ -10,7 +10,7 @@
   </parent>
   <artifactId>as-jboss-wf8</artifactId>
   <properties>
-    <version.org.wildfly>8.0.0.Beta1</version.org.wildfly>
+    <version.org.wildfly>8.0.0.Final</version.org.wildfly>
   </properties>
   <dependencies>
     <dependency>

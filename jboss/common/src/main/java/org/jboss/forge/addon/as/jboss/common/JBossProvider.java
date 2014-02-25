@@ -129,18 +129,6 @@ public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends A
    }
 
    @Override
-   public Result start(UIContext context)
-   {
-      return Results.fail("Not implemented yet");
-   }
-
-   @Override
-   public Result shutdown(UIContext context)
-   {
-      return Results.fail("Not implemented yet");
-   }
-
-   @Override
    public Result deploy(UIContext context)
    {
       return Results.fail("Not implemented yet");
@@ -151,4 +139,5 @@ public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends A
    {
       return Results.fail("Not implemented yet");
    }
+   
 }

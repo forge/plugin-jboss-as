@@ -13,8 +13,12 @@ import java.net.InetAddress;
 import javax.inject.Inject;
 import javax.security.auth.callback.CallbackHandler;
 
+import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.dmr.ModelNode;
 import org.jboss.forge.addon.as.jboss.common.JBossProvider;
+import org.jboss.forge.addon.as.jboss.common.deployment.Deployment;
+import org.jboss.forge.addon.as.jboss.common.deployment.Deployment.Type;
+import org.jboss.forge.addon.as.jboss.common.deployment.DeploymentFailureException;
 import org.jboss.forge.addon.as.jboss.common.server.ConnectionInfo;
 import org.jboss.forge.addon.as.jboss.common.server.SecurityActions;
 import org.jboss.forge.addon.as.jboss.common.server.Server;
@@ -23,9 +27,12 @@ import org.jboss.forge.addon.as.jboss.common.server.ServerInfo;
 import org.jboss.forge.addon.as.jboss.common.ui.JBossConfigurationWizard;
 import org.jboss.forge.addon.as.jboss.common.util.Messages;
 import org.jboss.forge.addon.as.jboss.wf8.server.ServerOperations;
+import org.jboss.forge.addon.as.jboss.wf8.server.StandaloneDeployment;
 import org.jboss.forge.addon.as.jboss.wf8.server.StandaloneServer;
 import org.jboss.forge.addon.as.jboss.wf8.ui.WildFly8ConfigurationWizard;
+import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
+import org.jboss.forge.addon.projects.facets.PackagingFacet;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.result.Failed;
 import org.jboss.forge.addon.ui.result.Result;
@@ -206,6 +213,78 @@ public class WildFly8Provider extends JBossProvider<WildFly8Configuration> imple
    public CallbackHandler getCallbackHandler()
    {
       return new ClientCallbackHandler();
+   }
+
+   @Override
+   public Result deploy(UIContext context)
+   {
+      return processDeployment(getFaceted(), (String) context.getAttributeMap().get("path"), Type.DEPLOY);
+   }
+
+   @Override
+   public Result undeploy(UIContext context)
+   {
+      return processDeployment(getFaceted(), (String) context.getAttributeMap().get("path"),
+               Type.UNDEPLOY);
+   }
+
+   protected Result processDeployment(Project project, String path, Type type)
+   {
+      final Server server = serverController.getServer();
+      Result result;
+
+      // The server must be running
+      if (server.isRunning())
+      {
+
+         final PackagingFacet packagingFacet = project.getFacet(PackagingFacet.class);
+
+         // Can't deploy what doesn't exist
+         if (!packagingFacet.getFinalArtifact().exists())
+            throw new DeploymentFailureException(messages.getMessage("deployment.not.found", path, type));
+         final File content;
+         if (path == null)
+         {
+            content = new File(packagingFacet.getFinalArtifact().getFullyQualifiedName());
+         }
+         else if (path.startsWith("/"))
+         {
+            content = new File(path);
+         }
+         else
+         {
+            // TODO this might not work for EAR deployments
+            content = new File(packagingFacet.getFinalArtifact().getParent().getFullyQualifiedName(), path);
+         }
+         try
+         {
+            final ModelControllerClient client = serverController.getClient();
+            final Deployment deployment = StandaloneDeployment.create(client, content, null, type, null,null);
+            deployment.execute();
+            result = Results.success(messages.getMessage("deployment.successful", type));
+         }
+         catch (Exception e)
+         {
+            if (e.getCause() != null)
+            {
+               result = Results.fail(e.getLocalizedMessage() + ": " + e.getCause()
+                        .getLocalizedMessage());
+            }
+            else
+            {
+               result = Results.fail(e.getLocalizedMessage());
+            }
+         }
+      }
+      else
+      {
+         result = Results.fail(messages.getMessage("server.not.running", configuration.getHostname(),
+                  configuration.getPort()));
+
+      }
+
+      return result;
+
    }
 
 }

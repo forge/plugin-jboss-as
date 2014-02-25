@@ -43,11 +43,6 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
    static final String DEFAULT_HOSTNAME = "localhost";
 
    /**
-    * The default port
-    */
-   static final int DEFAULT_PORT = 9999;
-
-   /**
     * The default timeout
     */
    static final int DEFAULT_TIMEOUT = 90;
@@ -117,9 +112,11 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
       return config.getString(CONFIG_HOSTNAME_KEY, DEFAULT_HOSTNAME);
    }
 
+   protected abstract int getDefaultPort();
+   
    public int getPort()
    {
-      return config.getInt(CONFIG_PORT_KEY, DEFAULT_PORT);
+      return config.getInt(index + CONFIG_PORT_KEY, getDefaultPort());
    }
 
    public void setPort(int port)

@@ -33,6 +33,11 @@ public class JBossAS7Configuration extends JBossConfiguration
     */
    private static final String DEFAULT_PATH = "target/jboss-as-dist";
 
+   /**
+    * The default port
+    */
+   static final int DEFAULT_PORT = 9999;
+
    @Override
    protected String getASName()
    {
@@ -45,6 +50,12 @@ public class JBossAS7Configuration extends JBossConfiguration
       return DEFAULT_VERSION;
    }
 
+   @Override
+   protected int getDefaultPort()
+   {
+      return DEFAULT_PORT;
+   }
+   
    @Override
    public String getDefaultPath()
    {
