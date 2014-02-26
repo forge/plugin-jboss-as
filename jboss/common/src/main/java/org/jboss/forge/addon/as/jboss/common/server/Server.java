@@ -244,7 +244,7 @@ public abstract class Server<MODELCONTROLLERCLIENT>
             int num;
             while ((num = in.read(buf)) != -1)
             {
-               System.out.write(buf, 0, num);
+               serverInfo.getOut().write(buf, 0, num);
                if (shutdownId != null && new String(buf).contains(shutdownId))
                {
                   latch.countDown();
@@ -254,6 +254,8 @@ public abstract class Server<MODELCONTROLLERCLIENT>
                   }
                }
             }
+
+            serverInfo.getOut().flush();
          }
          catch (IOException ignore)
          {

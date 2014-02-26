@@ -120,7 +120,7 @@ public class WildFly8Provider extends JBossProvider<WildFly8Configuration> imple
             final String propertiesFile = null;
 
             final ServerInfo serverInfo = ServerInfo.of(this, System.getenv("JAVA_HOME") /* jreHome */, jbossHome,
-                     modulesPath, jvmArgs, serverConfig, propertiesFile, (long) configuration.getTimeout());
+                     modulesPath, jvmArgs, serverConfig, propertiesFile, (long) configuration.getTimeout(), context.getProvider().getOutput().out());
             if (!serverInfo.getModulesDir().isDirectory())
             {
                Results.fail(String.format("Modules path '%s' is not a valid directory.", modulesPath));

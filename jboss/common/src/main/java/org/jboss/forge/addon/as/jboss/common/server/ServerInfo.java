@@ -7,6 +7,7 @@
 package org.jboss.forge.addon.as.jboss.common.server;
 
 import java.io.File;
+import java.io.OutputStream;
 
 import org.jboss.forge.addon.as.jboss.common.util.Files;
 
@@ -24,8 +25,9 @@ public class ServerInfo {
     private final String serverConfig;
     private final String propertiesFile;
     private final long startupTimeout;
-
-    private ServerInfo(final ConnectionInfo connectionInfo, final String javaHome, final File jbossHome, final String modulesDir, final String[] jvmArgs, final String serverConfig, final String propertiesFile, final long startupTimeout) {
+    private final OutputStream out;
+    
+    private ServerInfo(final ConnectionInfo connectionInfo, final String javaHome, final File jbossHome, final String modulesDir, final String[] jvmArgs, final String serverConfig, final String propertiesFile, final long startupTimeout, final OutputStream out) {
         this.connectionInfo = connectionInfo;
         this.javaHome = javaHome;
         this.jbossHome = jbossHome;
@@ -34,6 +36,7 @@ public class ServerInfo {
         this.serverConfig = serverConfig;
         this.propertiesFile = propertiesFile;
         this.startupTimeout = startupTimeout;
+        this.out = out!=null?out:System.out;
     }
 
     /**
@@ -49,8 +52,8 @@ public class ServerInfo {
      *
      * @return the server configuration information
      */
-    public static ServerInfo of(final ConnectionInfo connectionInfo, final String javaHome, final File jbossHome, final String modulesDir, final String[] jvmArgs, final String serverConfig, final String propertiesFile, final long startupTimeout) {
-        return new ServerInfo(connectionInfo, javaHome, jbossHome, modulesDir, jvmArgs, serverConfig, propertiesFile, startupTimeout);
+    public static ServerInfo of(final ConnectionInfo connectionInfo, final String javaHome, final File jbossHome, final String modulesDir, final String[] jvmArgs, final String serverConfig, final String propertiesFile, final long startupTimeout, final OutputStream out) {
+        return new ServerInfo(connectionInfo, javaHome, jbossHome, modulesDir, jvmArgs, serverConfig, propertiesFile, startupTimeout, out);
     }
 
     /**
@@ -124,4 +127,9 @@ public class ServerInfo {
     public long getStartupTimeout() {
         return startupTimeout;
     }
+
+   public OutputStream getOut()
+   {
+      return out;
+   }
 }

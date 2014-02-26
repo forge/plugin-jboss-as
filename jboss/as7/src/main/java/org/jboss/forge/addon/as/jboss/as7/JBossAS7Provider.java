@@ -141,7 +141,7 @@ public class JBossAS7Provider extends JBossProvider<JBossAS7Configuration> imple
             final String propertiesFile = null; // configuration.getServerPropertiesFile()
 
             final ServerInfo serverInfo = ServerInfo.of(this, javaHome, jbossHome,
-                     modulesPath, jvmArgs, serverConfig, propertiesFile, (long) configuration.getTimeout());
+                     modulesPath, jvmArgs, serverConfig, propertiesFile, (long) configuration.getTimeout(), context.getProvider().getOutput().out());
             if (!serverInfo.getModulesDir().isDirectory())
             {
                Results.fail(String.format("Modules path '%s' is not a valid directory.", modulesPath));
