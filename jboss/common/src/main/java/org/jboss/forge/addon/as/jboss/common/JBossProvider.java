@@ -13,7 +13,6 @@ import java.util.List;
 
 import javax.inject.Inject;
 
-import org.apache.commons.io.FileUtils;
 import org.jboss.forge.addon.as.jboss.common.ui.JBossConfigurationWizard;
 import org.jboss.forge.addon.as.jboss.common.util.Files;
 import org.jboss.forge.addon.as.spi.ApplicationServerProvider;
@@ -95,7 +94,7 @@ public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends A
    @Override
    public boolean isASInstalled(UIContext context)
    {
-      return getConfig().getPath() != null && FileUtils.getFile(getConfig().getPath()).exists();
+      return getConfig().getPath() != null && (new File(getConfig().getPath())).exists();
    }
 
    @Override

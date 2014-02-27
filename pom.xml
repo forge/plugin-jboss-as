@@ -16,8 +16,8 @@
     <module>jboss</module>
   </modules>
   <properties>
-    <version.forge>2.0.0.Final</version.forge>
-    <version.furnace>2.0.0.Final</version.furnace>
+    <version.forge>2.1.0.Final</version.forge>
+    <version.furnace>2.1.0.Final</version.furnace>
   </properties>
   <dependencyManagement>
     <dependencies>
