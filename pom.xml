@@ -88,7 +88,19 @@
       </dependency>
       <dependency>
         <groupId>org.jboss.forge.addon</groupId>
+        <artifactId>ui-test-harness</artifactId>
+        <version>${version.forge}</version>
+        <classifier>forge-addon</classifier>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.forge.addon</groupId>
         <artifactId>configuration</artifactId>
+        <version>${version.forge}</version>
+        <classifier>forge-addon</classifier>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.forge.addon</groupId>
+        <artifactId>maven</artifactId>
         <version>${version.forge}</version>
         <classifier>forge-addon</classifier>
       </dependency>

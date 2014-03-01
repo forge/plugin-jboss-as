@@ -14,6 +14,7 @@
     <module>common</module>
     <module>as7</module>
     <module>wf8</module>
+    <module>test</module>
   </modules>
   <dependencyManagement>
     <dependencies>
@@ -21,6 +22,18 @@
         <groupId>org.jboss.forge.addon</groupId>
         <artifactId>as-jboss-common</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.forge.addon</groupId>
+        <artifactId>as-jboss-as7</artifactId>
+        <version>${project.version}</version>
+        <classifier>forge-addon</classifier>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.forge.addon</groupId>
+        <artifactId>as-jboss-wf8</artifactId>
+        <version>${project.version}</version>
+        <classifier>forge-addon</classifier>
       </dependency>
     </dependencies>
   </dependencyManagement>
