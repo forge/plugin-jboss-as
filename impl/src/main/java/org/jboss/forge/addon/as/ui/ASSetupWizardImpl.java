@@ -56,8 +56,8 @@ public class ASSetupWizardImpl extends AbstractASWizardImpl implements ASSetupWi
    }
    
    @Inject
-   @WithAttributes(label = "AS Provider", required = true)
-   private UISelectOne<ApplicationServerProvider> provider;
+   @WithAttributes(label = "AS type", required = true)
+   private UISelectOne<ApplicationServerProvider> server;
 
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
@@ -69,9 +69,9 @@ public class ASSetupWizardImpl extends AbstractASWizardImpl implements ASSetupWi
       {
          providerList.add(provider);
       }
-      provider.setDefaultValue(providerList.get(0));
-      provider.setValueChoices(providerList);
-      provider.setItemLabelConverter(new Converter<ApplicationServerProvider, String>()
+      server.setDefaultValue(providerList.get(0));
+      server.setValueChoices(providerList);
+      server.setItemLabelConverter(new Converter<ApplicationServerProvider, String>()
       {
 
          @Override
@@ -80,20 +80,20 @@ public class ASSetupWizardImpl extends AbstractASWizardImpl implements ASSetupWi
             return source == null ? null : source.getName();
          }
       });
-      builder.add(provider);
+      builder.add(server);
    }
 
    @Override
    public void validate(UIValidationContext validator)
    {
       super.validate(validator);
-      provider.getValue().validate(validator);
+      server.getValue().validate(validator);
    }
 
    @Override
    public NavigationResult next(UINavigationContext context) throws Exception
    {
-      ApplicationServerProvider selectedProvider = provider.getValue();
+      ApplicationServerProvider selectedProvider = server.getValue();
       UIContext uiContext = context.getUIContext();
       uiContext.getAttributeMap().put(ApplicationServerProvider.class, selectedProvider);
 

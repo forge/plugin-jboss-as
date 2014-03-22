@@ -33,7 +33,7 @@ import org.jboss.forge.furnace.services.Imported;
  * 
  * @author Jeremie Lagarde
  */
-public class ASDeployWizardImpl extends AbstractASWizardImpl implements ASStartWizard
+public class ASDeployWizardImpl extends AbstractASWizardImpl implements ASDeployWizard
 {
    @Inject
    @WithAttributes(label = "path", description = "The path to the application to undeploy")

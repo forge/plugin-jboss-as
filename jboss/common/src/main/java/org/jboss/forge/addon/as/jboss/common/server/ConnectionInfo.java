@@ -11,7 +11,7 @@ import java.net.InetAddress;
 import javax.security.auth.callback.CallbackHandler;
 
 /**
- * Holds information on how to connect to the WildFly Application Server.
+ * Holds information on how to connect to the Application Server.
  *
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
  */

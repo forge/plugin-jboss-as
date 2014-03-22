@@ -12,11 +12,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.inject.Inject;
+import javax.security.auth.callback.CallbackHandler;
 
 import org.jboss.forge.addon.as.jboss.common.ui.JBossConfigurationWizard;
 import org.jboss.forge.addon.as.jboss.common.util.Files;
+import org.jboss.forge.addon.as.jboss.common.util.Messages;
 import org.jboss.forge.addon.as.spi.ApplicationServerProvider;
 import org.jboss.forge.addon.configuration.facets.ConfigurationFacet;
+import org.jboss.forge.addon.convert.Converter;
 import org.jboss.forge.addon.dependencies.Dependency;
 import org.jboss.forge.addon.dependencies.DependencyResolver;
 import org.jboss.forge.addon.dependencies.builder.DependencyQueryBuilder;
@@ -29,8 +32,6 @@ import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIValidationContext;
-import org.jboss.forge.addon.ui.result.Result;
-import org.jboss.forge.addon.ui.result.Results;
 
 /**
  * The application server provider
@@ -41,13 +42,14 @@ import org.jboss.forge.addon.ui.result.Results;
 public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends AbstractFacet<Project> implements
          ApplicationServerProvider
 {
+   private final static Messages messages = Messages.INSTANCE;
 
    @Inject
    private DependencyResolver resolver;
 
-//   @Inject
-//   private DirectoryResourceConverter directoryResourceConverter;
-   
+   @Inject
+   private Converter<File, DirectoryResource> directoryResourceConverter;
+
    @Override
    public boolean install()
    {
@@ -68,15 +70,14 @@ public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends A
    protected abstract Class<? extends JBossConfigurationWizard> getConfigurationWizardClass();
 
    protected abstract CONFIG getConfig();
-   
+
    @Override
    public void setFaceted(Project project)
    {
       super.setFaceted(project);
-      if(project.hasFacet(ConfigurationFacet.class))
+      if (project.hasFacet(ConfigurationFacet.class))
          getConfig().setProject(project);
    }
-   
 
    @Override
    public List<Class<? extends UICommand>> getSetupFlow()
@@ -117,7 +118,7 @@ public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends A
             }
          }
          Files.extractAppServer(dist.getArtifact().getFullyQualifiedName(), target);
-         return null;//  directoryResourceConverter.convert(target);
+         directoryResourceConverter.convert(target);
       }
       catch (IOException e)
       {
@@ -127,16 +128,9 @@ public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends A
       return null;
    }
 
-   @Override
-   public Result deploy(UIContext context)
+   public CallbackHandler getCallbackHandler()
    {
-      return Results.fail("Not implemented yet");
+      return new ClientCallbackHandler();
    }
 
-   @Override
-   public Result undeploy(UIContext context)
-   {
-      return Results.fail("Not implemented yet");
-   }
-   
 }

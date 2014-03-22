@@ -21,7 +21,7 @@ import org.jboss.forge.addon.ui.result.Result;
  * 
  * @author Jeremie Lagarde
  */
-public class ASUndeployWizardImpl extends AbstractASWizardImpl implements ASStartWizard
+public class ASUndeployWizardImpl extends AbstractASWizardImpl implements ASUndeployWizard
 {
 
    @Inject

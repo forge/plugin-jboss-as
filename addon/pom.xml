@@ -41,6 +41,12 @@
       <classifier>forge-addon</classifier>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.jboss.forge.addon</groupId>
+      <artifactId>as-jboss-wf8</artifactId>
+      <classifier>forge-addon</classifier>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
   <build>
     <plugins>

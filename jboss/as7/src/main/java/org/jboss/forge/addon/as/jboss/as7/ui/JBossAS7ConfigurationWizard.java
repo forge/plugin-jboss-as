@@ -6,10 +6,6 @@
  */
 package org.jboss.forge.addon.as.jboss.as7.ui;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import javax.inject.Inject;
 
 import org.jboss.forge.addon.as.jboss.as7.JBossAS7Configuration;
@@ -19,11 +15,6 @@ import org.jboss.forge.addon.dependencies.builder.DependencyBuilder;
 import org.jboss.forge.addon.facets.constraints.FacetConstraint;
 import org.jboss.forge.addon.projects.facets.DependencyFacet;
 import org.jboss.forge.addon.projects.facets.ResourcesFacet;
-import org.jboss.forge.addon.ui.context.UIBuilder;
-import org.jboss.forge.addon.ui.context.UINavigationContext;
-import org.jboss.forge.addon.ui.input.UIInputMany;
-import org.jboss.forge.addon.ui.metadata.WithAttributes;
-import org.jboss.forge.addon.ui.result.NavigationResult;
 
 /**
  * The JBoss AS7 Configuration Wisard
@@ -37,10 +28,6 @@ public class JBossAS7ConfigurationWizard extends JBossConfigurationWizard
    @Inject
    private JBossAS7Configuration config;
 
-   @Inject
-   @WithAttributes(label = "jvmargs")
-   private UIInputMany<String> jvmargs;
-   
    private DependencyBuilder jbossAS7Dist = DependencyBuilder.create()
             .setGroupId("org.jboss.as")
             .setArtifactId("jboss-as-dist")
@@ -59,38 +46,4 @@ public class JBossAS7ConfigurationWizard extends JBossConfigurationWizard
       return jbossAS7Dist;
    }
 
-
-   @Override
-   public void initializeUI(UIBuilder builder) throws Exception
-   {
-      super.initializeUI(builder);
-            
-      String[] args = config.getJvmArgs();
-      if(args!=null && args.length>0)
-         jvmargs.setDefaultValue(Arrays.asList(args));
-      
-      builder.add(jvmargs);
-   }
-   
-   @Override
-   public NavigationResult next(UINavigationContext context) throws Exception
-   {
-      NavigationResult result = super.next(context);
-
-      if (jvmargs.getValue() != null && jvmargs.getValue().iterator().hasNext())
-      {
-         List<String> args = new ArrayList<String>();
-         for (String arg : jvmargs.getValue())
-         {
-            args.add(arg);
-         }
-         config.setJvmArgs(args.toArray(new String[args.size()]));
-      }
-      else
-      {
-         config.setJvmArgs(null);
-      }
-      
-      return result;
-   }
 }

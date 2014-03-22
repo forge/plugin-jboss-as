@@ -43,7 +43,7 @@ public class WildFly8Configuration extends JBossConfiguration
    {
       return DEFAULT_VERSION;
    }
-   
+
    @Override
    public String getDefaultPath()
    {
@@ -55,5 +55,5 @@ public class WildFly8Configuration extends JBossConfiguration
    {
       return DEFAULT_PORT;
    }
-   
+
 }

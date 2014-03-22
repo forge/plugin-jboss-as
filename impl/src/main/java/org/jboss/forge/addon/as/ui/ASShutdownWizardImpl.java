@@ -15,7 +15,7 @@ import org.jboss.forge.addon.ui.result.Result;
  * 
  * @author Jeremie Lagarde
  */
-public class ASShutdownWizardImpl extends AbstractASWizardImpl implements ASStartWizard
+public class ASShutdownWizardImpl extends AbstractASWizardImpl implements ASShutdownWizard
 {
 
    @Override

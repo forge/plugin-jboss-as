@@ -14,7 +14,7 @@
     <module>common</module>
     <module>as7</module>
     <module>wf8</module>
-    <module>test</module>
+    <module>tests</module>
   </modules>
   <dependencyManagement>
     <dependencies>

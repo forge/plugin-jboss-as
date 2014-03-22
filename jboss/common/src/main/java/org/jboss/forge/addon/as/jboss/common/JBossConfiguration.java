@@ -22,19 +22,17 @@ import org.jboss.forge.addon.projects.Project;
 public abstract class JBossConfiguration extends AbstractFacet<Project>
 {
    private static final String CONFIG_PREFIX = "as.jboss";
-
    private static final String CONFIG_VERSION_KEY = "version";
-
    private static final String CONFIG_PORT_KEY = "port";
-
    private static final String CONFIG_TIMEOUT_KEY = "timeout";
-
    private static final String CONFIG_HOSTNAME_KEY = "hostname";
-
    private static final String CONFIG_PATH_KEY = "path";
-
    private static final String CONFIG_DISTRIBUTION_KEY = "dist";
-
+   private static final String CONFIG_JAVAHOME_KEY = "javahome";
+   private static final String CONFIG_JVMARGS_KEY = "jvmargs";
+   private static final String CONFIG_CONFIGFILE_KEY = "serverconfigfile";
+   private static final String CONFIG_PROPERTIESFILE_KEY = "propertiesfile";
+   
    protected String index = CONFIG_PREFIX + "." + getASName() + ".";
 
    /**
@@ -109,11 +107,11 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
 
    public String getHostname()
    {
-      return config.getString(CONFIG_HOSTNAME_KEY, DEFAULT_HOSTNAME);
+      return config.getString(index + CONFIG_HOSTNAME_KEY, DEFAULT_HOSTNAME);
    }
 
    protected abstract int getDefaultPort();
-   
+
    public int getPort()
    {
       return config.getInt(index + CONFIG_PORT_KEY, getDefaultPort());
@@ -129,7 +127,7 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
 
    public int getTimeout()
    {
-      return config.getInt(CONFIG_TIMEOUT_KEY, DEFAULT_TIMEOUT);
+      return config.getInt(index + CONFIG_TIMEOUT_KEY, DEFAULT_TIMEOUT);
    }
 
    public void setTimeout(int timeout)
@@ -150,4 +148,45 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
       setVersion(dist.getVersion());
       config.setProperty(index + CONFIG_DISTRIBUTION_KEY, dist.toString());
    }
+
+   public String getJavaHome()
+   {
+      return config.getString(index + CONFIG_JAVAHOME_KEY);
+   }
+
+   public void setJavaHome(String javaHome)
+   {
+      config.addProperty(index + CONFIG_JAVAHOME_KEY, javaHome);
+   }
+
+   public String[] getJvmArgs()
+   {
+      return config.getStringArray(index + CONFIG_JVMARGS_KEY);
+   }
+
+   public void setJvmArgs(String[] args)
+   {
+      config.addProperty(index + CONFIG_JVMARGS_KEY, args);
+   }
+
+   public String getServerConfigFile()
+   {
+      return config.getString(index + CONFIG_CONFIGFILE_KEY);
+   }
+
+   public void setServerConfigFile(String serverConfigFile)
+   {
+      config.addProperty(index + CONFIG_CONFIGFILE_KEY, serverConfigFile);
+   }
+
+   public String getServerPropertiesFile()
+   {
+      return config.getString(index + CONFIG_PROPERTIESFILE_KEY);
+   }
+
+   public void setServerPropertiesFile(String serverPropertiesFile)
+   {
+      config.addProperty(index + CONFIG_PROPERTIESFILE_KEY, serverPropertiesFile);
+   }
+
 }

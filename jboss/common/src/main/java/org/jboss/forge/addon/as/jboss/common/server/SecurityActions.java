@@ -22,12 +22,6 @@ public final class SecurityActions {
             @Override
             public void run() {
                 server.stop();
-//                // Bad hack to get maven to complete it's message output
-//                try {
-//                    TimeUnit.MILLISECONDS.sleep(500L);
-//                } catch (InterruptedException ignore) {
-//                    // no-op
-//                }
             }
         });
         hook.setDaemon(true);

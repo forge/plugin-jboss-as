@@ -81,28 +81,28 @@ public class ASSetupWizardTest
          tester.initialize();
 
          Assert.assertTrue(tester.isValid());
-         tester.setValueFor("provider", "jbossas7");
-         
+         tester.setValueFor("server", "jbossas7");
+
          Assert.assertTrue(tester.canMoveToNextStep());
          tester.next().initialize();
          Assert.assertFalse(tester.canMoveToNextStep());
-                  
+
          final AtomicBoolean flag = new AtomicBoolean();
          tester.getContext().addCommandExecutionListener(new AbstractCommandExecutionListener()
          {
             @Override
             public void postCommandExecuted(UICommand command, UIExecutionContext context, Result result)
             {
-               if (result.getMessage()!=null && result.getMessage().equals("The applicaion server was setup successfully."))
+               if (result.getMessage() != null
+                        && result.getMessage().equals("The applicaion server was setup successfully."))
                {
                   flag.set(true);
                }
             }
          });
          tester.execute();
-         // Ensure that the two pages were invoked
+         // Ensure that the application server is installed
          Assert.assertEquals(true, flag.get());
       }
-
    }
 }

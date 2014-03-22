@@ -30,7 +30,7 @@ import org.jboss.forge.furnace.services.Imported;
 /**
  * @author Jeremie Lagarde
  */
-public abstract class AbstractASWizardImpl extends AbstractProjectCommand implements ASStartWizard
+public abstract class AbstractASWizardImpl extends AbstractProjectCommand
 {
 
    @Inject
@@ -59,7 +59,7 @@ public abstract class AbstractASWizardImpl extends AbstractProjectCommand implem
    public boolean isEnabled(UIContext context)
    {
       ApplicationServerProvider selectedProvider = getSelectedProvider(context);
-      if (selectedProvider != null)
+      if (selectedProvider != null && super.isEnabled(context))
          return selectedProvider.isASInstalled(context);
       return false;
    }
@@ -98,7 +98,6 @@ public abstract class AbstractASWizardImpl extends AbstractProjectCommand implem
 
    protected abstract Result execute(ApplicationServerProvider provider, UIContext context) throws Exception;
 
-   @Override
    public NavigationResult next(UINavigationContext context) throws Exception
    {
       return null;

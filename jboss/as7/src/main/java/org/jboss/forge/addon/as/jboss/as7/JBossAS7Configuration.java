@@ -6,12 +6,10 @@
  */
 package org.jboss.forge.addon.as.jboss.as7;
 
-import java.io.File;
-
 import org.jboss.forge.addon.as.jboss.common.JBossConfiguration;
 
 /**
- * The JBOss AS7 Configuration
+ * The JBoss AS 7 Configuration
  * 
  * @author Jeremie Lagarde
  */
@@ -19,12 +17,8 @@ public class JBossAS7Configuration extends JBossConfiguration
 {
    private static final String ASNAME = "as7";
 
-   private static final String CONFIG_BUNDLESDIR_KEY = "bundlesdir";
-   private static final String CONFIG_JVMARGS_KEY = "jvmargs";
-   private static final String CONFIG_CONFIGFILE_KEY = "serverconfigfile";
-
    /**
-    * The default versionO
+    * The default version
     */
    private static final String DEFAULT_VERSION = "7.1.1.Final";
 
@@ -36,7 +30,7 @@ public class JBossAS7Configuration extends JBossConfiguration
    /**
     * The default port
     */
-   static final int DEFAULT_PORT = 9999;
+   static final int DEFAULT_PORT = 9990;
 
    @Override
    protected String getASName()
@@ -51,38 +45,15 @@ public class JBossAS7Configuration extends JBossConfiguration
    }
 
    @Override
-   protected int getDefaultPort()
-   {
-      return DEFAULT_PORT;
-   }
-   
-   @Override
    public String getDefaultPath()
    {
       return DEFAULT_PATH;
    }
 
-   public File getBundlesDir()
+   @Override
+   protected int getDefaultPort()
    {
-      String file = config.getString(index + CONFIG_BUNDLESDIR_KEY);
-      if (file != null)
-         return new File(file);
-      return null;
+      return DEFAULT_PORT;
    }
 
-   public String[] getJvmArgs()
-   {
-      return config.getStringArray(index + CONFIG_JVMARGS_KEY);
-   }
-
-   public void setJvmArgs(String[] args)
-   {
-      config.addProperty(index + CONFIG_JVMARGS_KEY, args);
-   }
-
-   public String getServerConfigFile()
-   {
-      return config.getString(index + CONFIG_CONFIGFILE_KEY);
-   }
-   
 }

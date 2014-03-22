@@ -7,18 +7,13 @@
 package org.jboss.forge.addon.as.jboss.as7;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import javax.inject.Inject;
 import javax.security.auth.callback.CallbackHandler;
 
 import org.jboss.as.controller.client.ModelControllerClient;
-import org.jboss.dmr.ModelNode;
-import org.jboss.forge.addon.as.jboss.as7.server.ServerOperations;
-import org.jboss.forge.addon.as.jboss.as7.server.StandaloneServer;
-import org.jboss.forge.addon.as.jboss.as7.server.deployment.standalone.StandaloneDeployment;
-import org.jboss.forge.addon.as.jboss.as7.ui.JBossAS7ConfigurationWizard;
 import org.jboss.forge.addon.as.jboss.common.JBossProvider;
 import org.jboss.forge.addon.as.jboss.common.deployment.Deployment;
 import org.jboss.forge.addon.as.jboss.common.deployment.Deployment.Type;
@@ -26,20 +21,16 @@ import org.jboss.forge.addon.as.jboss.common.deployment.DeploymentFailureExcepti
 import org.jboss.forge.addon.as.jboss.common.server.ConnectionInfo;
 import org.jboss.forge.addon.as.jboss.common.server.SecurityActions;
 import org.jboss.forge.addon.as.jboss.common.server.Server;
-import org.jboss.forge.addon.as.jboss.common.server.ServerConsoleWrapper;
-import org.jboss.forge.addon.as.jboss.common.server.ServerInfo;
 import org.jboss.forge.addon.as.jboss.common.ui.JBossConfigurationWizard;
 import org.jboss.forge.addon.as.jboss.common.util.Messages;
-import org.jboss.forge.addon.as.jboss.common.util.Streams;
+import org.jboss.forge.addon.as.jboss.as7.server.StandaloneDeployment;
+import org.jboss.forge.addon.as.jboss.as7.ui.JBossAS7ConfigurationWizard;
 import org.jboss.forge.addon.projects.Project;
-import org.jboss.forge.addon.projects.ProjectFactory;
 import org.jboss.forge.addon.projects.facets.PackagingFacet;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.result.Failed;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
-
-import com.google.common.net.InetAddresses;
 
 /**
  * The application server provider for JBoss AS7
@@ -50,18 +41,10 @@ public class JBossAS7Provider extends JBossProvider<JBossAS7Configuration> imple
 {
 
    @Inject
-   private ServerController serverController;
+   private JBossAS7ServerController serverController;
 
    @Inject
    private JBossAS7Configuration configuration;
-
-   @Inject
-   private CallbackHandler callbackHandler;
-
-   @Inject
-   private ProjectFactory projectFactory;
-
-   private ServerConsoleWrapper consoleOut;
 
    private final Messages messages = Messages.INSTANCE;
 
@@ -74,7 +57,7 @@ public class JBossAS7Provider extends JBossProvider<JBossAS7Configuration> imple
    @Override
    public String getDescription()
    {
-      return "JBoss AS7";
+      return "JBoss AS 7";
    }
 
    @Override
@@ -90,28 +73,10 @@ public class JBossAS7Provider extends JBossProvider<JBossAS7Configuration> imple
    }
 
    @Override
-   public int getPort()
-   {
-      return configuration.getPort();
-   }
-
-   @Override
-   public InetAddress getHostAddress()
-   {
-      return InetAddresses.forString("127.0.0.1"); // configuration.getHostname();
-   }
-
-   @Override
-   public CallbackHandler getCallbackHandler()
-   {
-      return new ClientCallbackHandler();
-   }
-
-   @Override
    public Result start(UIContext context)
    {
       Result result = null;
-      if ((serverController.hasServer() && serverController.getServer().isRunning()))
+      if ((serverController.hasServer() && serverController.getServer().isRunning()) || false)// getState().isRunningState())
       {
          result = Results.fail(messages.getMessage("server.already.running"));
       }
@@ -119,49 +84,19 @@ public class JBossAS7Provider extends JBossProvider<JBossAS7Configuration> imple
       {
          try
          {
-            // Clean-up possible old console output
-            closeConsoleOutput();
 
-            // Validate the environment
-            final File jbossHome = new File(configuration.getPath());
-            if (!jbossHome.isDirectory())
-            {
-               Results.fail(String.format("JBOSS_HOME '%s' is not a valid directory.", jbossHome));
-            }
-            // JVM arguments should be space delimited
-            final String[] jvmArgs = configuration.getJvmArgs();
-            final String javaHome = System.getenv("JAVA_HOME"); // configuration.getJavahome();
-            // if (this.javaHome == null) {
-            // javaHome = SecurityActions.getEnvironmentVariable("JAVA_HOME");
-            // } else {
-            // javaHome = this.javaHome;
-            // }
-            final String modulesPath = configuration.getPath() + "/modules"; /* configuration.getModulesDir() */
-            final String serverConfig = configuration.getServerConfigFile();
-            final String propertiesFile = null; // configuration.getServerPropertiesFile()
+            if (!serverController.hasServer())
+               createServer(context);
 
-            final ServerInfo serverInfo = ServerInfo.of(this, javaHome, jbossHome,
-                     modulesPath, jvmArgs, serverConfig, propertiesFile, (long) configuration.getTimeout(), context.getProvider().getOutput().out());
-            if (!serverInfo.getModulesDir().isDirectory())
-            {
-               Results.fail(String.format("Modules path '%s' is not a valid directory.", modulesPath));
-            }
-            // Create the server
-            final Server server = new StandaloneServer(serverInfo);
-            // Add the shutdown hook
-            SecurityActions.registerShutdown(server);
+            Server<ModelControllerClient> server = serverController.getServer();
+
             // Start the server
-            // log.info("Server is starting up.");
             server.start();
             server.checkServerState();
 
             if (server.isRunning())
             {
                result = Results.success(messages.getMessage("server.start.success", configuration.getVersion()));
-
-               // Close any previously connected clients
-               serverController.closeClient();
-               serverController.setServer(server);
             }
             else
             {
@@ -175,50 +110,72 @@ public class JBossAS7Provider extends JBossProvider<JBossAS7Configuration> imple
          }
          if (result instanceof Failed)
          {
-            closeConsoleOutput();
+            // closeConsoleOutput();
          }
 
       }
       return result;
+   }
+
+   private Server<ModelControllerClient> createServer(UIContext context)
+   {
+      final File jbossHome = new File(configuration.getPath());
+
+      final String modulesPath = null;
+      final Server<ModelControllerClient> server = serverController.createServer(this, jbossHome, configuration.getJavaHome(), configuration.getJvmArgs(),
+               modulesPath, configuration.getServerConfigFile(), configuration.getServerPropertiesFile(), (long) configuration.getTimeout(), context
+                        .getProvider().getOutput().out());
+
+      // Close any previously connected clients
+      serverController.closeClient();
+      serverController.setServer(server);
+
+      // Add the shutdown hook
+      SecurityActions.registerShutdown(server);
+
+      return server;
    }
 
    @Override
    public Result shutdown(UIContext context)
    {
-      Result result = Results.success(messages.getMessage("server.shutdown.success"));
-      final Server server = serverController.getServer();
-      if (server == null)
+      try
       {
-         try
+         if (!serverController.hasServer())
          {
-            final ModelNode response = serverController.getClient().execute(ServerOperations
-                     .createOperation(org.jboss.forge.addon.as.jboss.as7.server.ServerOperations.SHUTDOWN));
-            if (org.jboss.forge.addon.as.jboss.as7.server.ServerOperations.isSuccessfulOutcome(response))
-            {
-               result = Results.success(ServerOperations.readResultAsString(response));
-            }
-            else
-            {
-               result = Results.fail(ServerOperations.readResultAsString(response));
-            }
+            createServer(context);
          }
-         catch (IOException e)
-         {
-            result = Results.fail(e.getLocalizedMessage());
-         }
-         finally
-         {
-            serverController.closeClient();
-         }
-      }
-      else
-      {
-         serverController.shutdownServer();
-      }
-      return result;
+         return serverController.shutdownServer();
 
+      }
+      catch (Exception e)
+      {
+         return Results.fail(e.getLocalizedMessage());
+      }
+      finally
+      {
+         serverController.closeClient();
+      }
    }
 
+   @Override
+   public int getPort()
+   {
+      return configuration.getPort();
+   }
+
+   @Override
+   public InetAddress getHostAddress()
+   {
+      try
+      {
+         return InetAddress.getByName(configuration.getHostname());
+      }
+      catch (UnknownHostException e)
+      {
+         throw new IllegalArgumentException(String.format("Host name '%s' is invalid.", configuration.getHostname()), e);
+      }
+   }
 
    @Override
    public Result deploy(UIContext context)
@@ -235,13 +192,11 @@ public class JBossAS7Provider extends JBossProvider<JBossAS7Configuration> imple
 
    protected Result processDeployment(Project project, String path, Type type)
    {
-      final Server server = serverController.getServer();
       Result result;
 
       // The server must be running
-      if (server.isRunning())
+      if (serverController.hasServer() && serverController.getServer().isRunning())
       {
-
          final PackagingFacet packagingFacet = project.getFacet(PackagingFacet.class);
 
          // Can't deploy what doesn't exist
@@ -264,7 +219,7 @@ public class JBossAS7Provider extends JBossProvider<JBossAS7Configuration> imple
          try
          {
             final ModelControllerClient client = serverController.getClient();
-            final Deployment deployment = StandaloneDeployment.create(client, content, null,type);
+            final Deployment deployment = StandaloneDeployment.create(client, content, null, type, null, null);
             deployment.execute();
             result = Results.success(messages.getMessage("deployment.successful", type));
          }
@@ -287,16 +242,6 @@ public class JBossAS7Provider extends JBossProvider<JBossAS7Configuration> imple
                   configuration.getPort()));
 
       }
-
       return result;
-
    }
-
-   private void closeConsoleOutput()
-   {
-      Streams.safeFlush(consoleOut);
-      Streams.safeClose(consoleOut);
-      consoleOut = null;
-   }
-
 }

@@ -7,6 +7,8 @@
 package org.jboss.forge.addon.as.jboss.common.ui;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -22,6 +24,7 @@ import org.jboss.forge.addon.projects.facets.DependencyFacet;
 import org.jboss.forge.addon.projects.facets.ResourcesFacet;
 import org.jboss.forge.addon.projects.ui.AbstractProjectCommand;
 import org.jboss.forge.addon.resource.DirectoryResource;
+import org.jboss.forge.addon.resource.FileResource;
 import org.jboss.forge.addon.resource.ResourceFactory;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
@@ -29,6 +32,7 @@ import org.jboss.forge.addon.ui.context.UIExecutionContext;
 import org.jboss.forge.addon.ui.context.UINavigationContext;
 import org.jboss.forge.addon.ui.context.UIValidationContext;
 import org.jboss.forge.addon.ui.input.UIInput;
+import org.jboss.forge.addon.ui.input.UIInputMany;
 import org.jboss.forge.addon.ui.input.UISelectOne;
 import org.jboss.forge.addon.ui.metadata.WithAttributes;
 import org.jboss.forge.addon.ui.result.NavigationResult;
@@ -51,7 +55,6 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
    @Inject
    private ResourceFactory resourceFactory;
 
-
    @Inject
    @WithAttributes(label = "Version")
    private UISelectOne<Coordinate> version;
@@ -68,39 +71,30 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
    @WithAttributes(label = "Stratup Timeout")
    private UIInput<Integer> timeout;
 
+   @Inject
+   @WithAttributes(label = "Java home")
+   private UIInput<DirectoryResource> javaHome;
+
+   @Inject
+   @WithAttributes(label = "jvmargs")
+   private UIInputMany<String> jvmargs;
+
+   @Inject
+   @WithAttributes(label = "Server config file")
+   private UIInput<FileResource<?>> configFile;
+
+   @Inject
+   @WithAttributes(label = "Server properties file")
+   private UIInput<FileResource<?>> propertiesFile;
+
    protected abstract JBossConfiguration getConfig();
 
    protected abstract DependencyBuilder getJBossDistribution();
 
    @Override
-   public NavigationResult next(UINavigationContext context) throws Exception
-   {
-      if (version.getValue() != null)
-      {
-         getConfig().setDistribution(version.getValue());
-      }
-
-      if (installDir.getValue() != null)
-      {
-         getConfig().setPath(installDir.getValue().getFullyQualifiedName());
-      }
-
-      getConfig().setPort(port.getValue());
-
-      getConfig().setTimeout(timeout.getValue());
-      
-      return null;
-   }
-
-   @Override
-   public void validate(UIValidationContext context)
-   {
-   }
-
-   @Override
    protected boolean isProjectRequired()
    {
-      return false;
+      return true;
    }
 
    @Override
@@ -110,9 +104,59 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
    }
 
    @Override
-   public boolean isEnabled(UIContext context)
+   public NavigationResult next(UINavigationContext context) throws Exception
    {
-      return false;
+      JBossConfiguration config = getConfig();
+
+      if (version.getValue() != null)
+      {
+         config.setDistribution(version.getValue());
+      }
+
+      if (installDir.getValue() != null)
+      {
+         config.setPath(installDir.getValue().getFullyQualifiedName());
+      }
+
+      config.setPort(port.getValue());
+
+      config.setTimeout(timeout.getValue());
+
+      if (javaHome.getValue() != null)
+      {
+         config.setJavaHome(javaHome.getValue().getFullyQualifiedName());
+      }
+
+      if (jvmargs.getValue() != null && jvmargs.getValue().iterator().hasNext())
+      {
+         List<String> args = new ArrayList<String>();
+         for (String arg : jvmargs.getValue())
+         {
+            args.add(arg);
+         }
+         config.setJvmArgs(args.toArray(new String[args.size()]));
+      }
+      else
+      {
+         config.setJvmArgs(null);
+      }
+
+      if (configFile.getValue() != null)
+      {
+         config.setServerConfigFile(configFile.getValue().getFullyQualifiedName());
+      }
+
+      if (propertiesFile.getValue() != null)
+      {
+         config.setServerPropertiesFile(propertiesFile.getValue().getFullyQualifiedName());
+      }
+
+      return null;
+   }
+
+   @Override
+   public void validate(UIValidationContext context)
+   {
    }
 
    @Override
@@ -122,7 +166,7 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
       JBossConfiguration config = getConfig();
       Project project = getSelectedProject(context);
       config.setFaceted(project);
-      
+
       DependencyFacet dependencyFacet = project.getFacet(DependencyFacet.class);
       List<Coordinate> dists = dependencyFacet.resolveAvailableVersions(getJBossDistribution());
 
@@ -144,17 +188,41 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
       }
 
       String path = config.getPath();
-      if(path == null) { 
+      if (path == null)
+      {
          installDir.setDefaultValue(project.getRootDirectory().getChildDirectory(config.getDefaultPath()));
-      } else {
+      }
+      else
+      {
          installDir.setDefaultValue(resourceFactory.create(DirectoryResource.class, new File(path)));
       }
 
       port.setDefaultValue(config.getPort());
 
       timeout.setDefaultValue(config.getTimeout());
-      
-      builder.add(version).add(this.installDir).add(port).add(timeout);
+
+      if (config.getJavaHome() != null)
+      {
+         javaHome.setValue(resourceFactory.create(DirectoryResource.class, new File(config.getJavaHome())));
+      }
+
+      String[] args = config.getJvmArgs();
+      if (args != null && args.length > 0)
+         jvmargs.setDefaultValue(Arrays.asList(args));
+
+      if (config.getServerConfigFile() != null)
+      {
+         configFile.setValue(resourceFactory.create(FileResource.class, new File(config.getServerConfigFile())));
+      }
+
+      if (config.getServerPropertiesFile() != null)
+      {
+         propertiesFile
+                  .setValue(resourceFactory.create(FileResource.class, new File(config.getServerPropertiesFile())));
+      }
+
+      builder.add(version).add(this.installDir).add(port).add(timeout).add(javaHome).add(jvmargs).add(configFile)
+               .add(propertiesFile);
    }
 
    @Override

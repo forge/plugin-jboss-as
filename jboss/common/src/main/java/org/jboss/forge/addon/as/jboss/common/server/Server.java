@@ -6,24 +6,38 @@
  */
 package org.jboss.forge.addon.as.jboss.common.server;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.jboss.forge.addon.as.jboss.common.util.Files;
+import org.jboss.forge.addon.ui.result.Result;
+import org.jboss.forge.addon.ui.result.Results;
+
 /**
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
+ * @author Jeremie Lagarde
  */
 public abstract class Server<MODELCONTROLLERCLIENT>
 {
+
+   private static final String CONFIG_PATH = "/standalone/configuration/";
+   private static final String STARTING = "STARTING";
+   private static final String STOPPING = "STOPPING";
+
    private final ScheduledExecutorService timerService;
    private final ServerInfo serverInfo;
    private Process process;
    private ConsoleConsumer console;
    private final String shutdownId;
+   private boolean isRunning;
 
    protected Server(final ServerInfo serverInfo)
    {
@@ -35,6 +49,7 @@ public abstract class Server<MODELCONTROLLERCLIENT>
       this.serverInfo = serverInfo;
       this.shutdownId = shutdownId;
       timerService = Executors.newScheduledThreadPool(1);
+      isRunning = false;
    }
 
    /**
@@ -61,10 +76,11 @@ public abstract class Server<MODELCONTROLLERCLIENT>
       process = processBuilder.start();
       console = startConsoleConsumer(process.getInputStream(), shutdownId);
       long timeout = serverInfo.getStartupTimeout() * 1000;
+      long start = System.currentTimeMillis();
       boolean serverAvailable = false;
       long sleep = 50;
       init();
-      while (timeout > 0 && !serverAvailable)
+      while ((System.currentTimeMillis() - start) < timeout && !serverAvailable)
       {
          serverAvailable = isRunning();
          if (!serverAvailable)
@@ -80,7 +96,6 @@ public abstract class Server<MODELCONTROLLERCLIENT>
                serverAvailable = false;
                break;
             }
-            timeout -= sleep;
             sleep = Math.max(sleep / 2, 100);
          }
       }
@@ -99,11 +114,11 @@ public abstract class Server<MODELCONTROLLERCLIENT>
    /**
     * Stops the server.
     */
-   public final synchronized void stop()
+   public final synchronized Result stop()
    {
       try
       {
-         stopServer();
+         return stopServer();
       }
       finally
       {
@@ -134,14 +149,78 @@ public abstract class Server<MODELCONTROLLERCLIENT>
    /**
     * Stops the server before the process is destroyed. A no-op override will just destroy the process.
     */
-   protected abstract void stopServer();
+   protected Result stopServer()
+   {
+      try
+      {
+         if (getClient() == null)
+         {
+            init();
+         }
+         return shutdown();
+      }
+      catch (IOException e)
+      {
+        return Results.fail(e.getLocalizedMessage());
+      }
+      finally
+      {
+         isRunning = false;
+      }
+   }
+
+   /**
+    * Call shutdown command to the server
+    * @return 
+    */
+   protected abstract Result shutdown();
 
    /**
     * Checks the status of the server and returns {@code true} if the server is fully started.
     * 
     * @return {@code true} if the server is fully started, otherwise {@code false}
     */
-   public abstract boolean isRunning();
+   public synchronized boolean isRunning()
+   {
+      if (isRunning)
+      {
+         return isRunning;
+      }
+      checkServerState();
+      return isRunning;
+   }
+
+   /**
+    * Returns the status of the server.
+    * 
+    * @return the status of the server
+    * @throws IOException if an IO error occurs
+    */
+   protected abstract String getServerState() throws IOException;
+
+   /**
+    * Checks whether the server is running or not. If the server is no longer running the {@link #isRunning()} should
+    * return {@code false}.
+    */
+   public void checkServerState()
+   {
+      if (getClient() == null)
+      {
+         isRunning = false;
+      }
+      else
+      {
+         try
+         {
+            final String state = getServerState();
+            isRunning = state != null && !STARTING.equals(state) && !STOPPING.equals(state);
+         }
+         catch (Throwable ignore)
+         {
+            isRunning = false;
+         }
+      }
+   }
 
    /**
     * Returns the client that used to execute management operations on the server.
@@ -155,13 +234,55 @@ public abstract class Server<MODELCONTROLLERCLIENT>
     * 
     * @return the commands used to launch the server
     */
-   protected abstract List<String> createLaunchCommand();
+   protected List<String> createLaunchCommand()
+   {
+      final File jbossHome = serverInfo.getJbossHome();
+      final String javaHome = serverInfo.getJavaHome();
+      final File modulesJar = new File(Files.createPath(jbossHome.getAbsolutePath(), "jboss-modules.jar"));
+      if (!modulesJar.exists())
+         throw new IllegalStateException("Cannot find: " + modulesJar);
+      String javaExec = (javaHome == null ? "java" : Files.createPath(javaHome, "bin", "java"));
+      if (javaExec.contains(" "))
+      {
+         javaExec = "\"" + javaExec + "\"";
+      }
 
-   /**
-    * Checks whether the server is running or not. If the server is no longer running the {@link #isRunning()} should
-    * return {@code false}.
-    */
-   public abstract void checkServerState();
+      // Create the commands
+      final List<String> cmd = new ArrayList<String>();
+      cmd.add(javaExec);
+      if (serverInfo.getJvmArgs() != null)
+      {
+         Collections.addAll(cmd, serverInfo.getJvmArgs());
+      }
+
+      cmd.add("-Dorg.jboss.boot.log.file=" + jbossHome + "/standalone/log/server.log");
+      cmd.add("-Dlogging.configuration=file:" + jbossHome + CONFIG_PATH + "logging.properties");
+      cmd.add("-jar");
+      cmd.add(modulesJar.getAbsolutePath());
+      cmd.add("-mp");
+      cmd.add(serverInfo.getModulesDir().getAbsolutePath());
+      cmd.add("org.jboss.as.standalone");
+      cmd.add("-Djboss.home.dir=" + jbossHome);
+      if (serverInfo.getConnectionInfo() != null && serverInfo.getConnectionInfo().getHostAddress() != null)
+      {
+         cmd.add("-Djboss.bind.address.management="+serverInfo.getConnectionInfo().getHostAddress().getHostAddress());
+      }
+      if (serverInfo.getConnectionInfo() != null && serverInfo.getConnectionInfo().getPort() != 0)
+      {
+         cmd.add("-Djboss.management.http.port="+serverInfo.getConnectionInfo().getPort());
+      }
+      if (serverInfo.getServerConfig() != null)
+      {
+         cmd.add("-server-config");
+         cmd.add(serverInfo.getServerConfig());
+      }
+      if (serverInfo.getPropertiesFile() != null)
+      {
+         cmd.add("-P");
+         cmd.add(serverInfo.getPropertiesFile());
+      }
+      return cmd;
+   }
 
    private int destroyProcess()
    {
@@ -268,6 +389,5 @@ public abstract class Server<MODELCONTROLLERCLIENT>
             latch.countDown();
          latch.await(seconds, TimeUnit.SECONDS);
       }
-
    }
 }
