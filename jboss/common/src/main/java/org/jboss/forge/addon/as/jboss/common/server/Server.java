@@ -228,7 +228,7 @@ public abstract class Server<MODELCONTROLLERCLIENT>
     * @return the client to execute management operations
     */
    public abstract MODELCONTROLLERCLIENT getClient();
-
+   
    /**
     * Creates the command to launch the server for the process.
     * 
@@ -266,10 +266,6 @@ public abstract class Server<MODELCONTROLLERCLIENT>
       if (serverInfo.getConnectionInfo() != null && serverInfo.getConnectionInfo().getHostAddress() != null)
       {
          cmd.add("-Djboss.bind.address.management="+serverInfo.getConnectionInfo().getHostAddress().getHostAddress());
-      }
-      if (serverInfo.getConnectionInfo() != null && serverInfo.getConnectionInfo().getPort() != 0)
-      {
-         cmd.add("-Djboss.management.http.port="+serverInfo.getConnectionInfo().getPort());
       }
       if (serverInfo.getServerConfig() != null)
       {

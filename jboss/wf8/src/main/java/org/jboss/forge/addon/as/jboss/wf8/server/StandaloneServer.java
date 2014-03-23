@@ -7,6 +7,7 @@
 package org.jboss.forge.addon.as.jboss.wf8.server;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.as.controller.client.ModelControllerClient;
@@ -45,6 +46,22 @@ public final class StandaloneServer extends Server<ModelControllerClient>
    {
       client = ModelControllerClient.Factory.create(serverInfo.getConnectionInfo().getHostAddress(), serverInfo
                .getConnectionInfo().getPort(), serverInfo.getConnectionInfo().getCallbackHandler());
+   }
+   
+   /**
+    * Creates the command to launch the server for the process.
+    * 
+    * @return the commands used to launch the server
+    */
+   protected List<String> createLaunchCommand()
+   {
+      List<String> cmd = super.createLaunchCommand();
+
+      if (serverInfo.getConnectionInfo() != null && serverInfo.getConnectionInfo().getPort() != 0)
+      {
+         cmd.add("-Djboss.management.http.port="+serverInfo.getConnectionInfo().getPort());
+      }
+      return cmd;
    }
 
    @Override

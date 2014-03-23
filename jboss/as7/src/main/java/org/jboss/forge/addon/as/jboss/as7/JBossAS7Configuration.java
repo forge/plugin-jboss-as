@@ -30,7 +30,7 @@ public class JBossAS7Configuration extends JBossConfiguration
    /**
     * The default port
     */
-   static final int DEFAULT_PORT = 9990;
+   static final int DEFAULT_PORT = 9999;
 
    @Override
    protected String getASName()
