@@ -6,7 +6,6 @@
  */
 package org.jboss.forge.addon.as.jboss.common;
 
-import org.apache.commons.lang.StringUtils;
 import org.jboss.forge.addon.configuration.Configuration;
 import org.jboss.forge.addon.configuration.facets.ConfigurationFacet;
 import org.jboss.forge.addon.dependencies.Coordinate;
@@ -33,7 +32,7 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
    private static final String CONFIG_CONFIGFILE_KEY = "serverconfigfile";
    private static final String CONFIG_PROPERTIESFILE_KEY = "propertiesfile";
    
-   protected String index = CONFIG_PREFIX + "." + getASName() + ".";
+   protected String asConfigPrefix = CONFIG_PREFIX + "." + getASName() + ".";
 
    /**
     * The default host name
@@ -77,15 +76,15 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
 
    public String getVersion()
    {
-      return config.getString(index + CONFIG_VERSION_KEY, getDefaultVersion());
+      return config.getString(asConfigPrefix + CONFIG_VERSION_KEY, getDefaultVersion());
    }
 
    public void setVersion(String version)
    {
-      if (StringUtils.isNotBlank(version))
-         config.setProperty(index + CONFIG_VERSION_KEY, version);
+      if (version!=null && !version.isEmpty())
+         config.setProperty(asConfigPrefix + CONFIG_VERSION_KEY, version);
       else
-         config.clearProperty(index + CONFIG_VERSION_KEY);
+         config.clearProperty(asConfigPrefix + CONFIG_VERSION_KEY);
    }
 
    public abstract String getDefaultPath();
@@ -94,99 +93,99 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
    {
       if (config == null)
          return null;
-      return config.getString(index + CONFIG_PATH_KEY);
+      return config.getString(asConfigPrefix + CONFIG_PATH_KEY);
    }
 
    public void setPath(String path)
    {
-      if (StringUtils.isNotBlank(path))
-         config.setProperty(index + CONFIG_PATH_KEY, path);
+      if (path != null && !path.isEmpty())
+         config.setProperty(asConfigPrefix + CONFIG_PATH_KEY, path);
       else
-         config.clearProperty(index + CONFIG_PATH_KEY);
+         config.clearProperty(asConfigPrefix + CONFIG_PATH_KEY);
    }
 
    public String getHostname()
    {
-      return config.getString(index + CONFIG_HOSTNAME_KEY, DEFAULT_HOSTNAME);
+      return config.getString(asConfigPrefix + CONFIG_HOSTNAME_KEY, DEFAULT_HOSTNAME);
    }
 
    protected abstract int getDefaultPort();
 
    public int getPort()
    {
-      return config.getInt(index + CONFIG_PORT_KEY, getDefaultPort());
+      return config.getInt(asConfigPrefix + CONFIG_PORT_KEY, getDefaultPort());
    }
 
    public void setPort(int port)
    {
       if (port > 0)
-         config.setProperty(index + CONFIG_PORT_KEY, port);
+         config.setProperty(asConfigPrefix + CONFIG_PORT_KEY, port);
       else
-         config.clearProperty(index + CONFIG_PORT_KEY);
+         config.clearProperty(asConfigPrefix + CONFIG_PORT_KEY);
    }
 
    public int getTimeout()
    {
-      return config.getInt(index + CONFIG_TIMEOUT_KEY, DEFAULT_TIMEOUT);
+      return config.getInt(asConfigPrefix + CONFIG_TIMEOUT_KEY, DEFAULT_TIMEOUT);
    }
 
    public void setTimeout(int timeout)
    {
       if (timeout > 0)
-         config.setProperty(index + CONFIG_TIMEOUT_KEY, timeout);
+         config.setProperty(asConfigPrefix + CONFIG_TIMEOUT_KEY, timeout);
       else
-         config.clearProperty(index + CONFIG_TIMEOUT_KEY);
+         config.clearProperty(asConfigPrefix + CONFIG_TIMEOUT_KEY);
    }
 
    public Coordinate getDistibution()
    {
-      return CoordinateBuilder.create(config.getString(index + CONFIG_DISTRIBUTION_KEY));
+      return CoordinateBuilder.create(config.getString(asConfigPrefix + CONFIG_DISTRIBUTION_KEY));
    }
 
    public void setDistribution(Coordinate dist)
    {
       setVersion(dist.getVersion());
-      config.setProperty(index + CONFIG_DISTRIBUTION_KEY, dist.toString());
+      config.setProperty(asConfigPrefix + CONFIG_DISTRIBUTION_KEY, dist.toString());
    }
 
    public String getJavaHome()
    {
-      return config.getString(index + CONFIG_JAVAHOME_KEY);
+      return config.getString(asConfigPrefix + CONFIG_JAVAHOME_KEY);
    }
 
    public void setJavaHome(String javaHome)
    {
-      config.addProperty(index + CONFIG_JAVAHOME_KEY, javaHome);
+      config.addProperty(asConfigPrefix + CONFIG_JAVAHOME_KEY, javaHome);
    }
 
    public String[] getJvmArgs()
    {
-      return config.getStringArray(index + CONFIG_JVMARGS_KEY);
+      return config.getStringArray(asConfigPrefix + CONFIG_JVMARGS_KEY);
    }
 
    public void setJvmArgs(String[] args)
    {
-      config.addProperty(index + CONFIG_JVMARGS_KEY, args);
+      config.addProperty(asConfigPrefix + CONFIG_JVMARGS_KEY, args);
    }
 
    public String getServerConfigFile()
    {
-      return config.getString(index + CONFIG_CONFIGFILE_KEY);
+      return config.getString(asConfigPrefix + CONFIG_CONFIGFILE_KEY);
    }
 
    public void setServerConfigFile(String serverConfigFile)
    {
-      config.addProperty(index + CONFIG_CONFIGFILE_KEY, serverConfigFile);
+      config.addProperty(asConfigPrefix + CONFIG_CONFIGFILE_KEY, serverConfigFile);
    }
 
    public String getServerPropertiesFile()
    {
-      return config.getString(index + CONFIG_PROPERTIESFILE_KEY);
+      return config.getString(asConfigPrefix + CONFIG_PROPERTIESFILE_KEY);
    }
 
    public void setServerPropertiesFile(String serverPropertiesFile)
    {
-      config.addProperty(index + CONFIG_PROPERTIESFILE_KEY, serverPropertiesFile);
+      config.addProperty(asConfigPrefix + CONFIG_PROPERTIESFILE_KEY, serverPropertiesFile);
    }
 
 }

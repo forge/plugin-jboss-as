@@ -118,7 +118,7 @@ public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends A
             }
          }
          Files.extractAppServer(dist.getArtifact().getFullyQualifiedName(), target);
-         directoryResourceConverter.convert(target);
+         return directoryResourceConverter.convert(target);
       }
       catch (IOException e)
       {

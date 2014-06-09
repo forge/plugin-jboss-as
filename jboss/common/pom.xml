@@ -13,8 +13,6 @@
     <version.org.apache.commons.commons-compress>1.4.1</version.org.apache.commons.commons-compress>
   </properties>
   <dependencies>
-    <!-- dependency> <groupId>org.jboss.forge.addon</groupId> <artifactId>as-api</artifactId> 
-      <scope>provided</scope> </dependency -->
 
     <dependency>
       <groupId>org.jboss.forge.addon</groupId>
@@ -29,10 +27,6 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- dependency> <groupId>org.jboss.forge.addon</groupId> <artifactId>projects</artifactId> 
-      <classifier>forge-addon</classifier> <scope>provided</scope> </dependency> 
-      <dependency> <groupId>org.jboss.forge.addon</groupId> <artifactId>ui</artifactId> 
-      <classifier>forge-addon</classifier> <scope>provided</scope> </dependency -->
 
     <dependency>
       <groupId>org.jboss.forge.furnace.container</groupId>
@@ -41,8 +35,6 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- dependency> <groupId>org.jboss.forge.addon</groupId> <artifactId>configuration</artifactId> 
-      <classifier>forge-addon</classifier> <scope>provided</scope> </dependency -->
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-compress</artifactId>
