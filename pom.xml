@@ -3,16 +3,14 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.jboss.forge.addon</groupId>
-  <artifactId>as-parent</artifactId>
+  <artifactId>jboss-as-parent</artifactId>
   <version>2.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <modules>
-    <module>addon</module>
-    <module>api</module>
-    <module>impl</module>
-    <module>spi</module>
+    <module>common</module>
+    <module>as7</module>
+    <module>wf8</module>
     <module>tests</module>
-    <module>jboss</module>
   </modules>
   <properties>
     <version.forge>2.6.0.Final</version.forge>
@@ -53,28 +51,6 @@
       </dependency>
       <dependency>
         <groupId>org.jboss.forge.addon</groupId>
-        <artifactId>as</artifactId>
-        <version>${project.version}</version>
-        <classifier>forge-addon</classifier>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.forge.addon</groupId>
-        <artifactId>as-api</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.forge.addon</groupId>
-        <artifactId>as-impl</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.forge.addon</groupId>
-        <artifactId>as-spi</artifactId>
-        <version>${project.version}</version>
-        <classifier>forge-addon</classifier>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.forge.addon</groupId>
         <artifactId>projects</artifactId>
         <version>${version.forge}</version>
         <classifier>forge-addon</classifier>
@@ -103,6 +79,39 @@
         <version>${version.forge}</version>
         <classifier>forge-addon</classifier>
       </dependency>
+      
+      <dependency>
+        <groupId>org.jboss.forge.addon</groupId>
+        <artifactId>as</artifactId>
+        <version>${project.version}</version>
+        <classifier>forge-addon</classifier>
+      </dependency>
+      
+      <dependency>
+        <groupId>org.jboss.forge.addon</groupId>
+        <artifactId>as-spi</artifactId>
+        <version>${project.version}</version>
+        <classifier>forge-addon</classifier>
+      </dependency>
+      
+      <dependency>
+        <groupId>org.jboss.forge.addon</groupId>
+        <artifactId>jboss-as-common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.forge.addon</groupId>
+        <artifactId>jboss-as-as7</artifactId>
+        <version>${project.version}</version>
+        <classifier>forge-addon</classifier>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.forge.addon</groupId>
+        <artifactId>jboss-as-wf8</artifactId>
+        <version>${project.version}</version>
+        <classifier>forge-addon</classifier>
+      </dependency>
+      
     </dependencies>
   </dependencyManagement>
   <build>
