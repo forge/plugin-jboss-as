@@ -132,7 +132,8 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
          List<String> args = new ArrayList<String>();
          for (String arg : jvmargs.getValue())
          {
-            args.add(arg);
+            if(!arg.isEmpty())
+               args.add(arg);
          }
          config.setJvmArgs(args.toArray(new String[args.size()]));
       }

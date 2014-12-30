@@ -44,6 +44,11 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
     */
    static final int DEFAULT_TIMEOUT = 90;
 
+   /**
+    * The default jvmArgs
+    */
+   static final String[] DEFAULT_JVMARGS = {"-Xms64m", "-Xmx512m", "-XX:MaxPermSize=256m", "-Djava.net.preferIPv4Stack=true"};
+
    protected Configuration config;
 
    protected abstract String getASName();
@@ -160,12 +165,20 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
 
    public String[] getJvmArgs()
    {
-      return config.getStringArray(asConfigPrefix + CONFIG_JVMARGS_KEY);
+      String[] jvmArgs = config.getStringArray(asConfigPrefix + CONFIG_JVMARGS_KEY);
+      if(jvmArgs == null || jvmArgs.length ==0)
+      {
+         jvmArgs = DEFAULT_JVMARGS;
+      }
+      return jvmArgs;
    }
 
+   @SuppressWarnings("null")
    public void setJvmArgs(String[] args)
    {
-      config.addProperty(asConfigPrefix + CONFIG_JVMARGS_KEY, args);
+      config.clearProperty(asConfigPrefix + CONFIG_JVMARGS_KEY);
+      if(args!=null || args.length>0)
+         config.addProperty(asConfigPrefix + CONFIG_JVMARGS_KEY, args);
    }
 
    public String getServerConfigFile()
