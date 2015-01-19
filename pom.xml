@@ -13,8 +13,8 @@
     <module>tests</module>
   </modules>
   <properties>
-    <version.forge>2.6.0.Final</version.forge>
-    <version.furnace>2.6.0.Final</version.furnace>
+    <version.forge>2.13.0.Final</version.forge>
+    <version.furnace>2.13.0.Final</version.furnace>
   </properties>
   <dependencyManagement>
     <dependencies>
