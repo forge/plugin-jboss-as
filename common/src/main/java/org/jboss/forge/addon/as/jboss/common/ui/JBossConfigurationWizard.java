@@ -60,6 +60,10 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
    private UISelectOne<Coordinate> version;
 
    @Inject
+   @WithAttributes(label = "Distribution file", description = "The path of the zip file containing application server distribution", required = false)
+   private UIInput<FileResource> distributionFile;
+
+   @Inject
    @WithAttributes(label = "Install directory", description = "The path for installing the application server", required = true)
    private UIInput<DirectoryResource> installDir;
 
@@ -113,6 +117,12 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
          config.setDistribution(version.getValue());
       }
 
+      if (distributionFile.getValue() != null)
+      {
+         config.setDistributionFile(installDir.getValue().getFullyQualifiedName());
+      }
+
+      
       if (installDir.getValue() != null)
       {
          config.setPath(installDir.getValue().getFullyQualifiedName());
@@ -187,7 +197,12 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
          if (coordinate.getVersion().equals(defaultVersion))
             version.setDefaultValue(coordinate);
       }
-
+      
+      if (config.getDistributionFile() != null)
+      {
+         distributionFile.setValue(resourceFactory.create(FileResource.class, new File(config.getDistributionFile())));
+      }
+      
       String path = config.getPath();
       if (path == null)
       {
@@ -222,7 +237,7 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
                   .setValue(resourceFactory.create(FileResource.class, new File(config.getServerPropertiesFile())));
       }
 
-      builder.add(version).add(this.installDir).add(port).add(timeout).add(javaHome).add(jvmargs).add(configFile)
+      builder.add(version).add(distributionFile).add(this.installDir).add(port).add(timeout).add(javaHome).add(jvmargs).add(configFile)
                .add(propertiesFile);
    }
 

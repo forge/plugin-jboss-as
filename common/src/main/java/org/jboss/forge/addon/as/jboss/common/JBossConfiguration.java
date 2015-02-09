@@ -27,6 +27,7 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
    private static final String CONFIG_HOSTNAME_KEY = "hostname";
    private static final String CONFIG_PATH_KEY = "path";
    private static final String CONFIG_DISTRIBUTION_KEY = "dist";
+   private static final String CONFIG_DISTRUBUTION_FILE_KEY = CONFIG_PREFIX + "distfile";
    private static final String CONFIG_JAVAHOME_KEY = "javahome";
    private static final String CONFIG_JVMARGS_KEY = "jvmargs";
    private static final String CONFIG_CONFIGFILE_KEY = "serverconfigfile";
@@ -153,6 +154,21 @@ public abstract class JBossConfiguration extends AbstractFacet<Project>
       config.setProperty(asConfigPrefix + CONFIG_DISTRIBUTION_KEY, dist.toString());
    }
 
+   public String getDistributionFile()
+   {
+      if (config == null)
+         return null;
+      return config.getString(CONFIG_DISTRUBUTION_FILE_KEY);
+   }
+
+   public void setDistributionFile(String file)
+   {
+      if (file != null && !file.isEmpty())
+         config.setProperty(CONFIG_DISTRUBUTION_FILE_KEY, file);
+      else
+         config.clearProperty(CONFIG_DISTRUBUTION_FILE_KEY);
+   }
+   
    public String getJavaHome()
    {
       return config.getString(asConfigPrefix + CONFIG_JAVAHOME_KEY);
