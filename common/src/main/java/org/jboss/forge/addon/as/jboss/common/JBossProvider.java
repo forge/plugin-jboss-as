@@ -32,6 +32,7 @@ import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIValidationContext;
+import org.jboss.forge.furnace.util.Strings;
 
 /**
  * The application server provider
@@ -104,8 +105,6 @@ public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends A
       JBossConfiguration config = getConfig();
       String path = config.getPath();
 
-      Dependency dist = resolver.resolveArtifact(DependencyQueryBuilder.create(config.getDistibution()));
-
       File target = new File(path);
 
       try
@@ -117,7 +116,13 @@ public abstract class JBossProvider<CONFIG extends JBossConfiguration> extends A
                Files.deleteRecursively(target);
             }
          }
-         Files.extractAppServer(dist.getArtifact().getFullyQualifiedName(), target);
+
+         String distFile = config.getDistributionFile();
+         if(Strings.isNullOrEmpty(distFile)) {
+            Dependency dist = resolver.resolveArtifact(DependencyQueryBuilder.create(config.getDistibution()));
+            distFile = dist.getArtifact().getFullyQualifiedName();
+         }
+         Files.extractAppServer(distFile, target);
          return directoryResourceConverter.convert(target);
       }
       catch (IOException e)

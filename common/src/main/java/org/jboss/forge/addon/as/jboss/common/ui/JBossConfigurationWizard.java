@@ -119,15 +119,15 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
 
       if (distributionFile.getValue() != null)
       {
-         config.setDistributionFile(installDir.getValue().getFullyQualifiedName());
+         config.setDistributionFile(distributionFile.getValue().getFullyQualifiedName());
       }
-
-      
-      if (installDir.getValue() != null)
+      else
       {
-         config.setPath(installDir.getValue().getFullyQualifiedName());
+         config.setDistributionFile(null);
       }
-
+      
+      config.setPath(installDir.getValue().getFullyQualifiedName());
+      
       config.setPort(port.getValue());
 
       config.setTimeout(timeout.getValue());
@@ -198,10 +198,6 @@ public abstract class JBossConfigurationWizard extends AbstractProjectCommand im
             version.setDefaultValue(coordinate);
       }
       
-      if (config.getDistributionFile() != null)
-      {
-         distributionFile.setValue(resourceFactory.create(FileResource.class, new File(config.getDistributionFile())));
-      }
       
       String path = config.getPath();
       if (path == null)
